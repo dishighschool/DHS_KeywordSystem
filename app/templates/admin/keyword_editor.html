@@ -239,6 +239,9 @@
                 <div class="preview-content"></div>
               </div>
             </div>
+            {% if form.description_markdown.errors %}
+              <div class="invalid-feedback d-block">{{ form.description_markdown.errors[0] }}</div>
+            {% endif %}
 
             
             <div class="markdown-stats mt-2">
@@ -272,10 +275,16 @@
                     <div class="col-md-6">
                       <label class="form-label">YouTube 網址</label>
                       {{ video_form.url(class="form-control", placeholder="https://www.youtube.com/watch?v=...") }}
+                      {% if video_form.url.errors %}
+                        <div class="invalid-feedback d-block">{{ video_form.url.errors[0] }}</div>
+                      {% endif %}
                     </div>
                     <div class="col-md-6">
                       <label class="form-label">影片標題</label>
                       {{ video_form.title(class="form-control", placeholder="影片標題") }}
+                      {% if video_form.title.errors %}
+                        <div class="invalid-feedback d-block">{{ video_form.title.errors[0] }}</div>
+                      {% endif %}
                     </div>
                   </div>
                 </div>
@@ -305,6 +314,9 @@
                     <i class="bi bi-x-lg"></i>
                   </button>
                 </div>
+                {% if alias_form.title.errors %}
+                  <div class="invalid-feedback d-block">{{ alias_form.title.errors[0] }}</div>
+                {% endif %}
               </div>
               {% endfor %}
             </div>
@@ -338,6 +350,9 @@
                 <label for="seo_content" class="form-label">自訂 SEO 內容 (HTML)</label>
                 {{ form.seo_content(class="form-control", id="seo_content", rows="8") }}
                 <small class="form-text text-muted">支援 HTML 標籤</small>
+                {% if form.seo_content.errors %}
+                  <div class="invalid-feedback d-block">{{ form.seo_content.errors[0] }}</div>
+                {% endif %}
               </div>
             </div>
 

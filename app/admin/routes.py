@@ -308,11 +308,18 @@ def store_keyword():
         return redirect(url_for("admin.content_manager"))
 
     # If validation fails, return to creator with errors
-    flash("建立失敗,請檢查表單內容。", "error")
+    # 設定預設值
+    form.is_public.data = True
+    form.seo_auto_generate.data = True
+    
+    # 檢查是否從目標清單項目來的
     from_goal_item = request.form.get('from_goal_item', type=int)
+    goal_item = None
+    
     if from_goal_item:
-        return redirect(url_for("admin.create_keyword_studio", from_goal_item=from_goal_item))
-    return redirect(url_for("admin.create_keyword_studio"))
+        goal_item = KeywordGoalItem.query.get(from_goal_item)
+    
+    return render_template("admin/keyword_editor.html", form=form, keyword=None, is_creating=True, goal_item=goal_item)
 
 
 @admin_bp.post("/keywords/quick-create")
@@ -423,8 +430,9 @@ def save_keyword_editor(keyword_id: int):
         return redirect(url_for("admin.content_manager"))
 
     # If validation fails, return to editor with errors
-    flash("儲存失敗,請檢查表單內容。", "error")
-    return redirect(url_for("admin.edit_keyword_studio", keyword_id=keyword_id))
+    _populate_video_entries(form, keyword)
+    _populate_alias_entries(form, keyword)
+    return render_template("admin/keyword_editor.html", form=form, keyword=keyword, is_creating=False)
 
 
 @admin_bp.route("/keywords/<int:keyword_id>/regenerate-seo", methods=["POST"])
@@ -1115,12 +1123,19 @@ def _populate_video_entries(form: KeywordForm, keyword: LearningKeyword) -> None
 
 
 def _apply_video_updates(keyword: LearningKeyword, form: KeywordForm) -> None:
+    from ..utils.youtube import extract_youtube_video_id
+    
     keyword.videos.clear()
     for entry in form.videos.entries:
         data = entry.data
         url = (data or {}).get("url")
         if not url:
             continue
+        
+        # 雙重驗證：確保 URL 是有效的 YouTube 影片連結
+        if not extract_youtube_video_id(url):
+            continue  # 跳過無效的 YouTube URL
+        
         video = YouTubeVideo(
             title=(data or {}).get("title"),
             url=url,
