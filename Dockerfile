@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -13,9 +12,8 @@ WORKDIR /app
 COPY . .
 
 RUN pip install --upgrade pip \
-    && pip install . \
-    && rm -rf /root/.cache/pip
+    && pip install .
 
 EXPOSE 5000
 
-CMD ["flask", "run"]
+ENTRYPOINT ["gunicorn","-b","0.0.0.0:5000", "wsgi:app"]
