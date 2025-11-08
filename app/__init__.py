@@ -118,7 +118,7 @@ def _register_template_context(app: Flask) -> None:
         """Convert markdown text to HTML."""
         if not text:
             return ""
-        return markdown2.markdown(text, extras=["fenced-code-blocks"])
+        return markdown2.markdown(text, extras=["fenced-code-blocks"], safe_mode="escape")
     
     app.jinja_env.filters["markdown"] = markdown_filter
     

@@ -136,7 +136,7 @@ def keyword_detail(category_slug: str, slug: str):
             db.session.commit()
             
             # Convert markdown and link keywords
-            html_description = markdown(keyword.description_markdown, extras=["fenced-code-blocks"])  # noqa: S607
+            html_description = markdown(keyword.description_markdown, extras=["fenced-code-blocks"], safe_mode="escape")  # noqa: S607
             html_description = keyword_linker.link_keywords_in_html(html_description, current_keyword_id=keyword.id)
             
             # Get related keywords (public only)
@@ -214,7 +214,7 @@ def keyword_detail(category_slug: str, slug: str):
     db.session.commit()
 
     # Convert markdown to HTML
-    html_description = markdown(keyword.description_markdown, extras=["fenced-code-blocks"])  # noqa: S607
+    html_description = markdown(keyword.description_markdown, extras=["fenced-code-blocks"], safe_mode="escape")  # noqa: S607
     
     # Auto-link other keywords in the content
     html_description = keyword_linker.link_keywords_in_html(html_description, current_keyword_id=keyword.id)
@@ -328,7 +328,7 @@ def api_search():
     # Add keywords
     for keyword in keywords:
         # Convert markdown to plain text for description
-        description_html = markdown(keyword.description_markdown or "", extras=["fenced-code-blocks"])
+        description_html = markdown(keyword.description_markdown or "", extras=["fenced-code-blocks"], safe_mode="escape")
         description_text = unescape(re.sub(r'<[^>]+>', '', description_html))
         
         search_data.append({
@@ -345,7 +345,7 @@ def api_search():
     
     # Add aliases
     for alias in aliases:
-        description_html = markdown(alias.keyword.description_markdown or "", extras=["fenced-code-blocks"])
+        description_html = markdown(alias.keyword.description_markdown or "", extras=["fenced-code-blocks"], safe_mode="escape")
         description_text = unescape(re.sub(r'<[^>]+>', '', description_html))
         
         search_data.append({
