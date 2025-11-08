@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+*.egg-info/
+
+# Virtualenv
+.venv/
+venv/
+ENV/
+
+# VSCode
+.vscode/
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Flask/Instance
+instance/
+
+# Migrations
+migrations/__pycache__/
+
+# Test cache
+.pytest_cache/
+
+# Logs
+*.log
+
+# Node/npm
+node_modules/
+
+# Static uploads
+app/static/uploads/
+
+# Others
+.env
+.env.*
+
+# Docs (auto-generated)
+docs/*.bak
