@@ -15,6 +15,9 @@ ENV/
 # VSCode
 .vscode/
 
+# GitHub workflows
+.github/
+
 # IDE
 .idea/
 *.swp
@@ -44,7 +47,7 @@ app/static/uploads/
 
 # Others
 .env
-.env.*
+!.env.example
 
 # Docs (auto-generated)
 docs/*.bak
