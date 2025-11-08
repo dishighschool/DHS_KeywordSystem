@@ -83,6 +83,36 @@ docker build -t learning-keywords .
 docker run --rm -p 5000:5000 --env-file .env learning-keywords
 ```
 
+## 專案維運與安全
+
+- `.gitignore` 已完整覆蓋：
+  - 隱藏 `.env`、`.env.*`、`.github/`、`.vscode/`、`__pycache__/`、`.pytest_cache/`、`static/uploads/`、`instance/*.db`、`instance/*.sqlite3` 等敏感或暫存檔案。
+  - `.env.example` 為公開範本，實際 `.env` 不會被追蹤。
+- 所有快取、資料庫檔案已從 git 追蹤移除，確保敏感資料不外洩。
+- 請勿將真實 OAuth 憑證、密碼、API 金鑰等資訊提交至版本控制。
+
+## seed.py 資料結構
+
+- `app/seed.py` 已依據最新 `models.py` 結構重寫，支援分類、關鍵字、別名、觀看次數、YouTube 影片、狀態等欄位。
+- 執行 `flask --app app:create_app seed` 可初始化測試資料。
+
+## 依賴管理
+
+- 依據實際 import，`pyproject.toml` 僅保留必要依賴：
+  - Flask, Flask-SQLAlchemy, Flask-Migrate, Flask-WTF, Flask-Login, Authlib, requests, python-dotenv, markdown2, WTForms[email], pypinyin, email_validator
+  - 開發/測試：pytest, pytest-flask, black, flake8
+- 安裝方式：`pip install -e .[dev]`
+
+## 最新維運與開發指南
+
+- 所有舊版 docs/* 文件已刪除，統一整合於 `docs/PYTHON_MODULE_MAINTENANCE_GUIDE.md`。
+- 其他功能說明請見 `docs/` 目錄下各主題文件。
+
+## 狀態與貢獻
+
+- 專案已完成安全性、依賴、資料結構、文檔、gitignore、敏感檔案等全面排查。
+- 歡迎依照維運指南進行二次開發或部署。
+
 ## 專案結構
 
 ```
