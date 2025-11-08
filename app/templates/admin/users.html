@@ -1,0 +1,351 @@
+{% extends "admin/base.html" %}
+{% block title %}成員管理{% endblock %}
+{% block header_title %}成員管理{% endblock %}
+{% block page_icon_class %}bi bi-people{% endblock %}
+{% block page_title %}成員管理{% endblock %}
+{% block page_subtitle %}管理系統內的所有成員帳號和權限{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <h2 class="admin-card-title">
+          <i class="bi bi-people-fill admin-card-icon"></i>
+          系統成員列表
+        </h2>
+        <div class="text-muted small">共 {{ users_data|length }} 位成員 (按註冊時間排序)</div>
+      </div>
+      <div class="admin-card-body p-0">
+        {% if users_data %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 60px;">#</th>
+                <th style="width: 80px;">頭像</th>
+                <th>成員名稱</th>
+                <th style="width: 150px;">角色</th>
+                <th style="width: 120px;">狀態</th>
+                <th style="width: 180px;">註冊時間</th>
+                <th style="width: 100px;">關鍵字數</th>
+                <th style="width: 200px;" class="text-center">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in users_data %}
+              {% set user = item.user %}
+              {% set can_manage = item.can_manage %}
+              {% set reason = item.reason %}
+              {% set keyword_count = item.keyword_count %}
+              <tr class="{% if not user.is_active %}table-secondary{% endif %} {% if user.id == current_user.id %}table-info{% endif %}">
+                <td class="text-muted">{{ loop.index }}</td>
+                <td>
+                  <img src="{{ user.get_avatar_url(48) }}" alt="{{ user.username }}" 
+                    class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;">
+                </td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div>
+                      <div class="fw-semibold">
+                        {{ user.username }}
+                        {% if user.id == current_user.id %}
+                        <span class="badge bg-info ms-2">您</span>
+                        {% endif %}
+                      </div>
+                      <small class="text-muted">Discord ID: {{ user.discord_id }}</small>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  {% if user.is_admin() %}
+                  <span class="badge bg-danger">
+                    <i class="bi bi-shield-fill-check me-1"></i>管理員
+                  </span>
+                  {% else %}
+                  <span class="badge bg-primary">
+                    <i class="bi bi-person-fill me-1"></i>用戶
+                  </span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if user.is_active %}
+                  <span class="badge bg-success">
+                    <i class="bi bi-check-circle-fill me-1"></i>啟用
+                  </span>
+                  {% else %}
+                  <span class="badge bg-secondary">
+                    <i class="bi bi-x-circle-fill me-1"></i>停用
+                  </span>
+                  {% endif %}
+                </td>
+                <td>
+                  <small class="text-muted">
+                    {{ user.created_at.strftime('%Y-%m-%d %H:%M') }}
+                  </small>
+                </td>
+                <td>
+                  <span class="badge bg-info">
+                    {{ keyword_count }} 筆
+                  </span>
+                </td>
+                <td class="text-center">
+                  {% if can_manage %}
+                  <div class="btn-group btn-group-sm" role="group">
+                    
+                    <button type="button" 
+                      class="btn btn-outline-primary toggle-role-btn"
+                      data-user-id="{{ user.id }}"
+                      data-username="{{ user.username }}"
+                      data-current-role="{{ user.role.value }}"
+                      title="切換角色">
+                      <i class="bi bi-arrow-left-right"></i>
+                    </button>
+                    
+                    
+                    <button type="button" 
+                      class="btn {% if user.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %} toggle-active-btn"
+                      data-user-id="{{ user.id }}"
+                      data-username="{{ user.username }}"
+                      data-is-active="{{ user.is_active }}"
+                      title="{% if user.is_active %}停用{% else %}啟用{% endif %}">
+                      <i class="bi {% if user.is_active %}bi-pause-circle{% else %}bi-play-circle{% endif %}"></i>
+                    </button>
+                    
+                    
+                    <button type="button" 
+                      class="btn btn-outline-danger delete-user-btn"
+                      data-user-id="{{ user.id }}"
+                      data-username="{{ user.username }}"
+                      title="刪除成員">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                  {% else %}
+                  <span class="text-muted small" title="{{ reason }}">
+                    <i class="bi bi-lock-fill"></i> 無權限
+                  </span>
+                  <button type="button" 
+                    class="btn btn-sm btn-outline-secondary"
+                    disabled
+                    title="{{ reason }}">
+                    <i class="bi bi-info-circle"></i>
+                  </button>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+          <i class="bi bi-people text-muted" style="font-size: 3rem; opacity: 0.3;"></i>
+          <p class="text-muted mt-3 mb-0">系統中尚無用戶。</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="alert alert-info">
+      <h5 class="alert-heading">
+        <i class="bi bi-info-circle me-2"></i>權限說明
+      </h5>
+      <hr>
+      <ul class="mb-0">
+        <li><strong>管理員權限規則</strong>:管理員只能管理註冊時間比自己晚的其他管理員</li>
+        <li><strong>無法操作</strong>:無法修改或刪除自己的帳號</li>
+        <li><strong>權限不足</strong>:對於無權限管理的用戶,操作按鈕會被禁用並顯示原因</li>
+        <li><strong>角色類型</strong>:
+          <span class="badge bg-danger ms-1">管理員</span> - 完整管理權限 |
+          <span class="badge bg-primary ms-1">用戶</span> - 團隊成員權限
+        </li>
+        <li><strong>刪除成員</strong>:刪除成員時會同時刪除該成員創建的所有關鍵字</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="roleModal" tabindex="-1" aria-labelledby="roleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="roleModalLabel">
+          <i class="bi bi-arrow-left-right me-2"></i>切換成員角色
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+      </div>
+      <div class="modal-body">
+        <p>請為用戶 <strong id="roleUsername"></strong> 選擇新的角色:</p>
+        <input type="hidden" id="roleUserId">
+        <input type="hidden" id="roleCurrentRole">
+        
+        <div class="d-grid gap-3">
+          <button type="button" class="btn btn-outline-danger btn-lg role-option" data-role="admin">
+            <i class="bi bi-shield-fill-check me-2"></i>
+            <div>
+              <div class="fw-bold">管理員</div>
+              <small class="text-muted">擁有完整的系統管理權限</small>
+            </div>
+          </button>
+          
+          <button type="button" class="btn btn-outline-primary btn-lg role-option" data-role="user">
+            <i class="bi bi-person-fill me-2"></i>
+            <div>
+              <div class="fw-bold">用戶</div>
+              <small class="text-muted">團隊成員權限</small>
+            </div>
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const roleModal = new bootstrap.Modal(document.getElementById('roleModal'));
+  
+  // 切換角色按鈕
+  document.querySelectorAll('.toggle-role-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const userId = this.dataset.userId;
+      const username = this.dataset.username;
+      const currentRole = this.dataset.currentRole;
+      
+      document.getElementById('roleUserId').value = userId;
+      document.getElementById('roleUsername').textContent = username;
+      document.getElementById('roleCurrentRole').value = currentRole;
+      
+      // 高亮當前角色
+      document.querySelectorAll('.role-option').forEach(opt => {
+        if (opt.dataset.role === currentRole) {
+          opt.classList.add('active');
+        } else {
+          opt.classList.remove('active');
+        }
+      });
+      
+      roleModal.show();
+    });
+  });
+  
+  // 角色選項點擊
+  document.querySelectorAll('.role-option').forEach(btn => {
+    btn.addEventListener('click', async function() {
+      const newRole = this.dataset.role;
+      const userId = document.getElementById('roleUserId').value;
+      const currentRole = document.getElementById('roleCurrentRole').value;
+      
+      if (newRole === currentRole) {
+        alert('該成員已經是此角色');
+        return;
+      }
+      
+      if (!confirm(`確定要將此成員的角色更改為 ${newRole === 'admin' ? '管理員' : '用戶'} 嗎?`)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/admin/users/${userId}/role`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ role: newRole })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          roleModal.hide();
+          alert(data.message);
+          location.reload();
+        } else {
+          alert(data.message || '更新失敗');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('更新時發生錯誤');
+      }
+    });
+  });
+  
+  // 啟用/停用按鈕
+  document.querySelectorAll('.toggle-active-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+      const userId = this.dataset.userId;
+      const username = this.dataset.username;
+      const isActive = this.dataset.isActive === 'True';
+      const action = isActive ? '停用' : '啟用';
+      
+      if (!confirm(`確定要${action}用戶「${username}」嗎?`)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/admin/users/${userId}/toggle-active`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'}
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          alert(data.message);
+          location.reload();
+        } else {
+          alert(data.message || '操作失敗');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('操作時發生錯誤');
+      }
+    });
+  });
+  
+  // 刪除成員按鈕
+  document.querySelectorAll('.delete-user-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+      const userId = this.dataset.userId;
+      const username = this.dataset.username;
+      
+      if (!confirm(`⚠️ 警告!\n\n確定要刪除成員「${username}」嗎?\n\n此操作將:\n1. 永久刪除該成員帳號\n2. 刪除該成員創建的所有關鍵字\n3. 無法復原\n\n請謹慎操作!`)) {
+        return;
+      }
+      
+      if (!confirm('再次確認:真的要刪除此成員及其所有資料嗎?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/admin/users/${userId}/delete`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'}
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          alert(data.message);
+          location.reload();
+        } else {
+          alert(data.message || '刪除失敗');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('刪除時發生錯誤');
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

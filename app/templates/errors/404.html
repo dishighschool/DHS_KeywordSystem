@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+{% block title %}404 - 頁面不存在{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      
+      <div class="card border-0 shadow-sm" style="border-radius: var(--md-sys-shape-corner-extra-large, 28px); overflow: hidden;">
+        <div class="card-body p-4 p-md-5">
+          <div class="text-center">
+            
+            <div class="mb-4" style="position: relative;">
+              <div class="d-inline-flex align-items-center justify-content-center" 
+                   style="width: 120px; height: 120px; border-radius: var(--md-sys-shape-corner-extra-large, 28px); background: var(--md-sys-color-error-container, #FFDAD6);">
+                <i class="bi bi-compass" style="font-size: 4rem; color: var(--md-sys-color-on-error-container, #410E0B);"></i>
+              </div>
+            </div>
+
+            
+            <h1 class="display-4 fw-bold mb-3" style="color: var(--md-sys-color-on-surface, #1C1B1F);">
+              找不到頁面
+            </h1>
+            <p class="h5 mb-2" style="color: var(--md-sys-color-error, #BA1A1A); font-weight: 500;">
+              錯誤代碼: 404
+            </p>
+            <p class="lead text-muted mb-5" style="max-width: 600px; margin-left: auto; margin-right: auto;">
+              您訪問的頁面可能已被移除、名稱已更改，或暫時無法使用
+            </p>
+
+            
+            <div class="row justify-content-center mb-5">
+              <div class="col-md-8">
+                <div class="position-relative">
+                  <div class="d-flex align-items-center" 
+                       style="background: var(--md-sys-color-surface-container-high, #ECE6F0); 
+                              border-radius: var(--md-sys-shape-corner-full, 28px); 
+                              padding: 0.75rem 1.25rem;
+                              gap: 0.75rem;">
+                    <i id="searchIcon" class="bi bi-search flex-shrink-0" 
+                       style="color: var(--md-sys-color-on-surface-variant, #49454F); 
+                              font-size: 1.25rem;
+                              transition: all 0.2s;"></i>
+                    <input type="search" 
+                           class="form-control border-0 shadow-none p-0" 
+                           id="error404Search" 
+                           placeholder="搜尋關鍵字..."
+                           style="background: transparent; 
+                                  font-size: 1rem;"
+                           aria-label="搜尋關鍵字"
+                           autocomplete="off">
+                  </div>
+                  <div id="error404Results" class="mt-3"></div>
+                  
+                  <div id="searchHint" class="text-center mt-2" style="display: none;">
+                    <small style="color: var(--md-sys-color-on-surface-variant, #49454F);">
+                      <i class="bi bi-lightbulb"></i> 提示: 輸入關鍵字即可開始搜尋
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            
+            <div class="d-flex flex-wrap gap-3 justify-content-center mb-5">
+              <a href="{{ url_for('main.index') }}" 
+                 class="btn btn-lg px-5"
+                 style="background: var(--md-sys-color-primary, #6750A4); color: var(--md-sys-color-on-primary, #FFFFFF); border: none; border-radius: var(--md-sys-shape-corner-full, 100px); font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.12);">
+                <i class="bi bi-house-door-fill me-2"></i>返回首頁
+              </a>
+              <button onclick="window.history.back()" 
+                      class="btn btn-lg px-5"
+                      style="background: var(--md-sys-color-surface-container-highest, #E6E1E5); color: var(--md-sys-color-on-surface, #1C1B1F); border: none; border-radius: var(--md-sys-shape-corner-full, 100px); font-weight: 500;">
+                <i class="bi bi-arrow-left me-2"></i>返回上一頁
+              </button>
+            </div>
+          </div>
+
+          
+          {% if categories %}
+          <div class="mt-5 pt-4" style="border-top: 1px solid var(--md-sys-color-outline-variant, #CAC4D0);">
+            <h5 class="text-center mb-4" style="color: var(--md-sys-color-on-surface-variant, #49454F); font-weight: 500;">
+              探索熱門分類
+            </h5>
+            <div class="row row-cols-2 row-cols-md-3 g-2 g-md-3">
+              {% for category in categories[:6] %}
+              <div class="col">
+                <a href="{{ url_for('main.category_detail', slug=category.slug) }}" 
+                   class="text-decoration-none d-block h-100">
+                  <div class="card h-100 border-0 hover-lift" 
+                       style="background: var(--md-sys-color-surface-container, #F3EDF7); 
+                              border-radius: var(--md-sys-shape-corner-large, 16px); 
+                              transition: all 0.2s var(--md-sys-motion-easing-standard);">
+                    <div class="card-body text-center p-3" style="display: table; width: 100%; min-height: 100px;">
+                      <div style="display: table-cell; vertical-align: middle;">
+                        <div class="mb-2">
+                          <i class="bi {{ category.icon }}" 
+                             style="font-size: 2rem; color: var(--md-sys-color-primary, #6750A4);"></i>
+                        </div>
+                        <h6 class="card-title mb-1 fw-semibold" 
+                            style="color: var(--md-sys-color-on-surface, #1C1B1F); font-size: 0.875rem;">
+                          {{ category.name }}
+                        </h6>
+                        <small style="color: var(--md-sys-color-on-surface-variant, #49454F); font-size: 0.75rem;">
+                          {{ category.keywords|length }} 筆
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                </a>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          
+          <div class="text-center mt-5">
+            <div class="d-inline-flex align-items-center gap-2 px-4 py-3" 
+                 style="background: var(--md-sys-color-surface-container-low, #F7F2FA); border-radius: var(--md-sys-shape-corner-medium, 12px);">
+              <i class="bi bi-info-circle" style="color: var(--md-sys-color-primary, #6750A4);"></i>
+              <span style="color: var(--md-sys-color-on-surface-variant, #49454F); font-size: 0.875rem;">
+                需要協助？
+                <a href="mailto:support@example.com" 
+                   style="color: var(--md-sys-color-primary, #6750A4); text-decoration: none; font-weight: 500;">
+                  聯繫我們
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+#error404Search {
+  transition: box-shadow 0.2s var(--md-sys-motion-easing-standard);
+}
+
+#error404Search:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(103, 80, 164, 0.1) !important;
+}
+
+#error404Results {
+  max-height: 400px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--md-sys-color-outline-variant, #CAC4D0) transparent;
+}
+
+#error404Results::-webkit-scrollbar {
+  width: 6px;
+}
+
+#error404Results::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#error404Results::-webkit-scrollbar-thumb {
+  background: var(--md-sys-color-outline-variant, #CAC4D0);
+  border-radius: 3px;
+}
+
+#error404Results::-webkit-scrollbar-thumb:hover {
+  background: var(--md-sys-color-outline, #79747E);
+}
+
+#error404Results .result-item {
+  padding: 1rem;
+  border-radius: var(--md-sys-shape-corner-medium, 12px);
+  background: var(--md-sys-color-surface-container, #F3EDF7);
+  margin-bottom: 0.5rem;
+  transition: all 0.2s var(--md-sys-motion-easing-standard);
+  cursor: pointer;
+  text-decoration: none;
+  display: block;
+  border: 1px solid transparent;
+}
+
+#error404Results .result-item:hover {
+  background: var(--md-sys-color-surface-container-high, #ECE6F0);
+  transform: translateX(4px);
+  border-color: var(--md-sys-color-outline-variant, #CAC4D0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+#error404Results .result-item:active {
+  transform: translateX(2px);
+}
+
+/* 載入動畫 */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.loading-pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* 搜尋結果進入動畫 */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#error404Results .result-item {
+  animation: slideIn 0.3s var(--md-sys-motion-easing-standard);
+}
+
+/* 別名徽章樣式 */
+.badge.alias-badge {
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+</style>
+
+<script>
+let searchTimeout;
+let searchData = []; // 緩存搜尋數據
+const searchInput = document.getElementById('error404Search');
+const resultsDiv = document.getElementById('error404Results');
+const searchIcon = document.getElementById('searchIcon');
+const searchHint = document.getElementById('searchHint');
+
+// 載入搜尋數據
+async function loadSearchData() {
+  try {
+    const response = await fetch('/api/search');
+    if (response.ok) {
+      searchData = await response.json();
+      console.log(`已載入 ${searchData.length} 筆搜尋資料`);
+    }
+  } catch (error) {
+    console.error('Failed to load search data:', error);
+  }
+}
+
+// 執行搜尋
+function performSearch(query) {
+  const lowerQuery = query.toLowerCase();
+  
+  // 過濾匹配的結果
+  const results = searchData.filter(item => {
+    const titleMatch = item.title.toLowerCase().includes(lowerQuery);
+    const categoryMatch = item.category.toLowerCase().includes(lowerQuery);
+    const descMatch = item.description && item.description.toLowerCase().includes(lowerQuery);
+    return titleMatch || categoryMatch || descMatch;
+  }).slice(0, 5); // 只顯示前5個結果
+  
+  return results;
+}
+
+// 渲染搜尋結果
+function renderResults(results) {
+  if (results.length > 0) {
+    resultsDiv.innerHTML = results.map(item => {
+      const typeLabel = item.type === 'alias' 
+        ? `<span class="badge alias-badge rounded-pill" style="background: var(--md-sys-color-tertiary-container, #FFD8E4); color: var(--md-sys-color-on-tertiary-container, #31111D); font-size: 0.7rem; padding: 2px 8px; margin-left: 4px;">別名</span>`
+        : '';
+      
+      const mainKeywordInfo = item.main_keyword 
+        ? `<small style="color: var(--md-sys-color-on-surface-variant, #49454F); font-size: 0.75rem;"> → ${escapeHtml(item.main_keyword)}</small>`
+        : '';
+      
+      return `
+        <a href="${item.url}" class="result-item">
+          <div class="d-flex align-items-center">
+            <i class="bi ${item.category_icon || 'bi-bookmark'} me-3" 
+               style="color: var(--md-sys-color-primary, #6750A4); font-size: 1.25rem;"></i>
+            <div class="flex-grow-1 text-start">
+              <div class="fw-semibold d-flex align-items-center" style="color: var(--md-sys-color-on-surface, #1C1B1F);">
+                ${escapeHtml(item.title)}
+                ${typeLabel}
+              </div>
+              <small style="color: var(--md-sys-color-on-surface-variant, #49454F);">
+                ${escapeHtml(item.category)}${mainKeywordInfo}
+              </small>
+            </div>
+            <i class="bi bi-arrow-right" style="color: var(--md-sys-color-on-surface-variant, #49454F);"></i>
+          </div>
+        </a>
+      `;
+    }).join('');
+  } else {
+    resultsDiv.innerHTML = `
+      <div class="text-center p-4" 
+           style="background: var(--md-sys-color-surface-container, #F3EDF7); 
+                  border-radius: var(--md-sys-shape-corner-medium, 12px);">
+        <i class="bi bi-search mb-2" 
+           style="font-size: 2rem; color: var(--md-sys-color-on-surface-variant, #49454F);"></i>
+        <p class="mb-0" style="color: var(--md-sys-color-on-surface-variant, #49454F);">
+          找不到 "${escapeHtml(searchInput.value)}" 的相關結果
+        </p>
+        <small style="color: var(--md-sys-color-on-surface-variant, #49454F);">
+          試試其他關鍵字或瀏覽下方的熱門分類
+        </small>
+      </div>
+    `;
+  }
+}
+
+// HTML 轉義函數
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// 顯示載入狀態
+function showLoading() {
+  if (searchIcon) {
+    searchIcon.className = 'bi bi-arrow-repeat loading-pulse flex-shrink-0';
+    searchIcon.style.color = 'var(--md-sys-color-primary, #6750A4)';
+  }
+  
+  resultsDiv.innerHTML = `
+    <div class="text-center p-3" 
+         style="background: var(--md-sys-color-surface-container, #F3EDF7); 
+                border-radius: var(--md-sys-shape-corner-medium, 12px);">
+      <div class="spinner-border spinner-border-sm" 
+           style="color: var(--md-sys-color-primary, #6750A4);" 
+           role="status">
+        <span class="visually-hidden">搜尋中...</span>
+      </div>
+      <p class="mb-0 mt-2 small" style="color: var(--md-sys-color-on-surface-variant, #49454F);">
+        搜尋中...
+      </p>
+    </div>
+  `;
+}
+
+// 重置搜尋圖示
+function resetSearchIcon() {
+  if (searchIcon) {
+    searchIcon.className = 'bi bi-search flex-shrink-0';
+    searchIcon.style.color = 'var(--md-sys-color-on-surface-variant, #49454F)';
+  }
+}
+
+// 監聽輸入事件
+if (searchInput && resultsDiv) {
+  // 頁面載入時獲取搜尋數據
+  loadSearchData();
+  
+  // Focus 事件 - 顯示提示
+  searchInput.addEventListener('focus', function() {
+    if (this.value.length === 0 && searchHint) {
+      searchHint.style.display = 'block';
+    }
+  });
+  
+  // Blur 事件 - 隱藏提示
+  searchInput.addEventListener('blur', function() {
+    if (searchHint) {
+      setTimeout(() => {
+        searchHint.style.display = 'none';
+      }, 200);
+    }
+  });
+  
+  // Input 事件 - 搜尋
+  searchInput.addEventListener('input', function(e) {
+    clearTimeout(searchTimeout);
+    const query = e.target.value.trim();
+    
+    // 隱藏提示
+    if (searchHint) {
+      searchHint.style.display = 'none';
+    }
+    
+    if (query.length === 0) {
+      resultsDiv.innerHTML = '';
+      resetSearchIcon();
+      return;
+    }
+    
+    // 顯示載入狀態
+    showLoading();
+    
+    // 延遲搜尋
+    searchTimeout = setTimeout(() => {
+      const results = performSearch(query);
+      renderResults(results);
+      resetSearchIcon();
+    }, 300);
+  });
+  
+  // 支援 Enter 鍵快速跳轉到第一個結果
+  searchInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const firstResult = resultsDiv.querySelector('.result-item');
+      if (firstResult) {
+        window.location.href = firstResult.href;
+      }
+    }
+  });
+}
+</script>
+{% endblock %}

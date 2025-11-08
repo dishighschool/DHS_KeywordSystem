@@ -1,0 +1,300 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Sitemap 管理{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h2">
+    <i class="bi bi-map me-2"></i>Sitemap 管理
+  </h1>
+</div>
+
+<div class="row g-4">
+  
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3">
+        <h5 class="mb-0">
+          <i class="bi bi-info-circle me-2 text-primary"></i>Sitemap 資訊
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row g-4">
+          <div class="col-md-4">
+            <div class="d-flex align-items-center p-3 bg-light rounded-3">
+              <div class="flex-shrink-0">
+                <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+                  <i class="bi bi-file-earmark-text text-primary fs-4"></i>
+                </div>
+              </div>
+              <div class="flex-grow-1 ms-3">
+                <div class="text-muted small">關鍵字數量</div>
+                <div class="fs-4 fw-bold text-dark">{{ keywords_count }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="d-flex align-items-center p-3 bg-light rounded-3">
+              <div class="flex-shrink-0">
+                <div class="bg-success bg-opacity-10 rounded-circle p-3">
+                  <i class="bi bi-folder text-success fs-4"></i>
+                </div>
+              </div>
+              <div class="flex-grow-1 ms-3">
+                <div class="text-muted small">分類數量</div>
+                <div class="fs-4 fw-bold text-dark">{{ categories_count }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="d-flex align-items-center p-3 bg-light rounded-3">
+              <div class="flex-shrink-0">
+                <div class="bg-info bg-opacity-10 rounded-circle p-3">
+                  <i class="bi bi-link-45deg text-info fs-4"></i>
+                </div>
+              </div>
+              <div class="flex-grow-1 ms-3">
+                <div class="text-muted small">別名頁面</div>
+                <div class="fs-4 fw-bold text-dark">{{ aliases_count }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {% if last_modified %}
+        <div class="alert alert-info mt-4 mb-0">
+          <i class="bi bi-clock-history me-2"></i>
+          <strong>內容最後更新:</strong> {{ last_modified.strftime('%Y年%m月%d日 %H:%M:%S') }}
+        </div>
+        {% endif %}
+
+        {% if cache_exists %}
+        <div class="alert alert-success mt-3 mb-0">
+          <i class="bi bi-check-circle me-2"></i>
+          <strong>緩存狀態:</strong> 已緩存
+          {% if last_generated %}
+          (生成於 {{ last_generated.strftime('%Y年%m月%d日 %H:%M:%S') }},
+          {{ (cache_age // 60)|int }} 分鐘前)
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="alert alert-warning mt-3 mb-0">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          <strong>緩存狀態:</strong> 未緩存 (首次訪問時會自動生成)
+        </div>
+        {% endif %}
+
+        <hr class="my-4">
+
+        <h6 class="mb-3">Sitemap URL</h6>
+        <div class="input-group">
+          <input type="text" class="form-control" id="sitemapUrl" value="{{ sitemap_url }}" readonly>
+          <button class="btn btn-outline-secondary" type="button" onclick="copySitemapUrl()">
+            <i class="bi bi-clipboard me-1"></i>複製
+          </button>
+          <a href="{{ sitemap_url }}" target="_blank" class="btn btn-outline-primary">
+            <i class="bi bi-box-arrow-up-right me-1"></i>開啟
+          </a>
+        </div>
+        <small class="text-muted d-block mt-2">
+          <i class="bi bi-info-circle me-1"></i>將此 URL 提交至 Google Search Console、Bing Webmaster Tools 等搜尋引擎
+        </small>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3">
+        <h5 class="mb-0">
+          <i class="bi bi-tools me-2 text-primary"></i>操作
+        </h5>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('admin.generate_sitemap') }}" class="mb-3">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-arrow-clockwise me-2"></i>重新生成 Sitemap
+          </button>
+        </form>
+
+        <form method="post" action="{{ url_for('admin.clear_sitemap_cache') }}" class="mb-3">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline-warning w-100">
+            <i class="bi bi-trash me-2"></i>清除緩存
+          </button>
+        </form>
+
+        <div class="alert alert-light border mb-0">
+          <small class="text-muted">
+            <i class="bi bi-lightbulb me-1"></i>
+            <strong>自動更新:</strong> 當您新增、編輯或刪除關鍵字時,系統會自動清除緩存。下次訪問 sitemap.xml 時會自動重新生成最新內容。
+          </small>
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="card border-0 shadow-sm mt-4">
+      <div class="card-header bg-white py-3">
+        <h5 class="mb-0">
+          <i class="bi bi-search me-2 text-success"></i>SEO 建議
+        </h5>
+      </div>
+      <div class="card-body">
+        <ul class="list-unstyled mb-0">
+          <li class="mb-3">
+            <i class="bi bi-check-circle text-success me-2"></i>
+            <small>系統自動監測內容變更</small>
+          </li>
+          <li class="mb-3">
+            <i class="bi bi-check-circle text-success me-2"></i>
+            <small>智能緩存提升訪問速度</small>
+          </li>
+          <li class="mb-3">
+            <i class="bi bi-check-circle text-success me-2"></i>
+            <small>提交到 Google Search Console</small>
+          </li>
+          <li class="mb-0">
+            <i class="bi bi-check-circle text-success me-2"></i>
+            <small>監控搜尋引擎索引狀態</small>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3">
+        <h5 class="mb-0">
+          <i class="bi bi-eye me-2 text-primary"></i>Sitemap 預覽
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>URL 類型</th>
+                <th>優先級</th>
+                <th>更新頻率</th>
+                <th>數量</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <i class="bi bi-house-door text-primary me-2"></i>
+                  首頁
+                </td>
+                <td><span class="badge bg-success">1.0 (最高)</span></td>
+                <td><span class="badge bg-info">每日</span></td>
+                <td>1</td>
+              </tr>
+              <tr>
+                <td>
+                  <i class="bi bi-file-earmark-text text-primary me-2"></i>
+                  關鍵字頁面
+                </td>
+                <td><span class="badge bg-primary">0.8</span></td>
+                <td><span class="badge bg-info">每週</span></td>
+                <td>{{ keywords_count }}</td>
+              </tr>
+              <tr>
+                <td>
+                  <i class="bi bi-link-45deg text-info me-2"></i>
+                  關鍵字別名頁面
+                </td>
+                <td><span class="badge bg-info text-dark">0.6</span></td>
+                <td><span class="badge bg-info">每週</span></td>
+                <td>{{ aliases_count }}</td>
+              </tr>
+            </tbody>
+            <tfoot class="table-light">
+              <tr>
+                <td colspan="3" class="text-end fw-bold">總 URL 數量:</td>
+                <td class="fw-bold text-primary">{{ total_urls }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div class="alert alert-light border mt-3 mb-0">
+          <small class="text-muted">
+            <i class="bi bi-info-circle me-1"></i>
+            Sitemap 遵循 <a href="https://www.sitemaps.org/protocol.html" target="_blank" class="text-decoration-none">sitemaps.org 協議</a>,
+            包含 URL、最後修改時間、更新頻率和優先級資訊。
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3">
+        <h5 class="mb-0">
+          <i class="bi bi-file-code me-2 text-warning"></i>robots.txt 設定建議
+        </h5>
+      </div>
+      <div class="card-body">
+        <p class="text-muted mb-3">
+          在網站根目錄的 <code>robots.txt</code> 檔案中添加以下內容,幫助搜尋引擎找到您的 Sitemap:
+        </p>
+        <pre class="bg-dark text-light p-3 rounded"><code>User-agent: *
+Allow: /
+
+Sitemap: {{ sitemap_url }}</code></pre>
+        <button class="btn btn-sm btn-outline-secondary" onclick="copyRobotsTxt()">
+          <i class="bi bi-clipboard me-1"></i>複製內容
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function copySitemapUrl() {
+  const input = document.getElementById('sitemapUrl');
+  input.select();
+  document.execCommand('copy');
+  
+  const btn = event.target.closest('button');
+  const originalHtml = btn.innerHTML;
+  btn.innerHTML = '<i class="bi bi-check me-1"></i>已複製';
+  btn.classList.remove('btn-outline-secondary');
+  btn.classList.add('btn-success');
+  
+  setTimeout(() => {
+    btn.innerHTML = originalHtml;
+    btn.classList.remove('btn-success');
+    btn.classList.add('btn-outline-secondary');
+  }, 2000);
+}
+
+function copyRobotsTxt() {
+  const code = event.target.closest('.card-body').querySelector('code');
+  const text = code.textContent;
+  
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target.closest('button');
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check me-1"></i>已複製';
+    btn.classList.remove('btn-outline-secondary');
+    btn.classList.add('btn-success');
+    
+    setTimeout(() => {
+      btn.innerHTML = originalHtml;
+      btn.classList.remove('btn-success');
+      btn.classList.add('btn-outline-secondary');
+    }, 2000);
+  });
+}
+</script>
+{% endblock %}

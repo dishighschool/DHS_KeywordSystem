@@ -1,0 +1,31 @@
+[project]
+name = "learning-keywords-portal"
+version = "0.1.0"
+description = "A Flask-powered learning keywords portal with Discord OAuth and admin dashboard."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{name = "Your Team"}]
+dependencies = [
+  "Flask>=3.0",
+  "Flask-SQLAlchemy>=3.1",
+  "Flask-Migrate>=4.0",
+  "Flask-WTF>=1.2",
+  "Flask-Login>=0.6",
+  "Authlib>=1.3",
+  "requests>=2.32",
+  "python-dotenv>=1.0",
+  "markdown2>=2.4",
+  "WTForms[email]>=3.1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2",
+  "pytest-flask>=1.3",
+  "black>=24.4",
+  "flake8>=7.1",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"

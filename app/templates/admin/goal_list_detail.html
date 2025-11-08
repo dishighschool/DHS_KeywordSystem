@@ -1,0 +1,481 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ goal_list.name }}{% endblock %}
+
+{% block page_title %}{{ goal_list.name }}{% endblock %}
+{% block page_subtitle %}完成進度: {{ goal_list.completed_items }} / {{ goal_list.total_items }} ({{ "%.1f"|format(goal_list.completion_rate) }}%){% endblock %}
+{% block page_icon_class %}bi bi-list-check{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .goal-item {
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+    }
+    
+    .goal-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .goal-item.completed {
+        background-color: #f0f8f0;
+        border-left-color: #28a745;
+    }
+    
+    .goal-item.completed .goal-item-title {
+        text-decoration: line-through;
+        color: #6c757d;
+    }
+    
+    .completion-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="{{ url_for('admin.manage_goal_lists') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>返回清單列表
+    </a>
+    
+    {% if goal_list.created_by == current_user.id or current_user.is_admin() %}
+    <div class="btn-group">
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editListModal">
+            <i class="bi bi-pencil me-2"></i>編輯清單資訊
+        </button>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addItemsModal">
+            <i class="bi bi-plus-circle me-2"></i>新增項目
+        </button>
+        <button class="btn btn-outline-{{ 'danger' if goal_list.is_active else 'success' }}" 
+                onclick="toggleGoalList({{ goal_list.id }})">
+            <i class="bi bi-toggle-{{ 'on' if goal_list.is_active else 'off' }} me-1"></i>
+            {{ '停用' if goal_list.is_active else '啟用' }}
+        </button>
+        <button class="btn btn-outline-danger" onclick="deleteGoalList({{ goal_list.id }})">
+            <i class="bi bi-trash me-1"></i>刪除清單
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="admin-card">
+            <div class="admin-card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-folder me-2 text-primary" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <h6 class="mb-0">目標分類</h6>
+                        <span class="text-muted">{{ goal_list.category_name }}</span>
+                    </div>
+                </div>
+                
+                {% if goal_list.description %}
+                <div class="mb-3">
+                    <h6 class="fw-bold">說明</h6>
+                    <p class="text-muted mb-0">{{ goal_list.description }}</p>
+                </div>
+                {% endif %}
+                
+                <div class="progress" style="height: 20px;">
+                    <div class="progress-bar bg-success progress-bar-striped {% if goal_list.completion_rate < 100 %}progress-bar-animated{% endif %}" 
+                         role="progressbar" 
+                         style="width: {{ goal_list.completion_rate }}%"
+                         aria-valuenow="{{ goal_list.completion_rate }}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                        {{ "%.1f"|format(goal_list.completion_rate) }}%
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="admin-card">
+            <div class="admin-card-body">
+                <h6 class="fw-bold mb-3">統計資訊</h6>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">總計</span>
+                    <span class="fw-bold">{{ goal_list.total_items }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-success">已完成</span>
+                    <span class="fw-bold text-success">{{ goal_list.completed_items }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-warning">待完成</span>
+                    <span class="fw-bold text-warning">{{ goal_list.total_items - goal_list.completed_items }}</span>
+                </div>
+                
+                <hr>
+                
+                <div class="d-flex justify-content-between text-muted small">
+                    <span>創建者</span>
+                    <span>{{ goal_list.creator.username }}</span>
+                </div>
+                <div class="d-flex justify-content-between text-muted small">
+                    <span>創建時間</span>
+                    <span>{{ goal_list.created_at.strftime('%Y-%m-%d') }}</span>
+                </div>
+                <div class="d-flex justify-content-between text-muted small">
+                    <span>狀態</span>
+                    <span class="badge bg-{{ 'success' if goal_list.is_active else 'secondary' }}">
+                        {{ '啟用中' if goal_list.is_active else '已停用' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">
+            <i class="admin-card-icon bi bi-list-ul"></i>
+            關鍵字列表
+        </h5>
+    </div>
+    <div class="admin-card-body p-0">
+        {% if goal_list.items %}
+        <div class="list-group list-group-flush">
+            {% for item in goal_list.items %}
+            <div class="list-group-item goal-item {% if item.is_completed %}completed{% endif %}" 
+                 data-item-id="{{ item.id }}">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <span class="badge bg-secondary">{{ loop.index }}</span>
+                    </div>
+                    
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1 goal-item-title">{{ item.title }}</h6>
+                        {% if item.is_completed %}
+                        <small class="text-muted">
+                            <i class="bi bi-check-circle-fill text-success me-1"></i>
+                            由 {{ item.completer.username }} 於 {{ item.completed_at.strftime('%Y-%m-%d %H:%M') }} 完成
+                            {% if item.keyword %}
+                            · <a href="{{ url_for('admin.edit_keyword_studio', keyword_id=item.keyword_id) }}" 
+                                 class="text-decoration-none">查看關鍵字</a>
+                            {% endif %}
+                        </small>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="ms-3">
+                        {% if item.is_completed %}
+                        <span class="completion-badge badge bg-success">已完成</span>
+                        <button class="btn btn-sm btn-outline-secondary ms-2" 
+                                onclick="markIncomplete({{ item.id }})"
+                                title="取消完成">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </button>
+                        {% if item.keyword %}
+                        <a href="{{ url_for('admin.edit_keyword_studio', keyword_id=item.keyword_id) }}" 
+                           class="btn btn-sm btn-primary ms-2">
+                            <i class="bi bi-pencil me-1"></i>編輯
+                        </a>
+                        {% endif %}
+                        {% else %}
+                        <a href="{{ url_for('admin.prepare_create_from_goal', item_id=item.id) }}" 
+                           class="btn btn-sm btn-success"
+                           title="在編輯器中創建">
+                            <i class="bi bi-plus-circle me-1"></i>創建
+                        </a>
+                        <button class="btn btn-sm btn-outline-secondary ms-2" 
+                                onclick="markComplete({{ item.id }})"
+                                title="手動標記為完成">
+                            <i class="bi bi-check-lg"></i>
+                        </button>
+                        {% if goal_list.created_by == current_user.id or current_user.is_admin() %}
+                        <button class="btn btn-sm btn-outline-danger ms-2" 
+                                onclick="deleteItem({{ item.id }}, '{{ item.title }}')"
+                                title="刪除此項目">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <p class="text-muted">此清單尚無項目</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="modal fade" id="editListModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil me-2"></i>編輯清單資訊
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editListForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="listName" class="form-label">清單名稱 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="listName" value="{{ goal_list.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="listDescription" class="form-label">說明</label>
+                        <textarea class="form-control" id="listDescription" rows="3">{{ goal_list.description or '' }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="listCategory" class="form-label">目標分類 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="listCategory" value="{{ goal_list.category_name }}" required>
+                        <div class="form-text">所有項目將使用此分類創建關鍵字</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i>儲存變更
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addItemsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-plus-circle me-2"></i>新增目標項目
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addItemsForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="newItems" class="form-label">關鍵字列表 <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="newItems" rows="10" placeholder="請輸入關鍵字,每行一個&#10;例如:&#10;淨灘&#10;精緻&#10;創作者" required></textarea>
+                        <div class="form-text">每行輸入一個關鍵字標題,將依序新增到清單末尾</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-plus-circle me-1"></i>新增項目
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// 編輯清單資訊
+document.getElementById('editListForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const listId = {{ goal_list.id }};
+    const formData = {
+        name: document.getElementById('listName').value.trim(),
+        description: document.getElementById('listDescription').value.trim(),
+        category_name: document.getElementById('listCategory').value.trim()
+    };
+    
+    if (!formData.name || !formData.category_name) {
+        alert('請填寫必填欄位');
+        return;
+    }
+    
+    fetch(`/admin/goal-lists/${listId}/update`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || '更新失敗');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('更新失敗');
+    });
+});
+
+// 新增項目
+document.getElementById('addItemsForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const listId = {{ goal_list.id }};
+    const itemsText = document.getElementById('newItems').value.trim();
+    
+    if (!itemsText) {
+        alert('請輸入至少一個關鍵字');
+        return;
+    }
+    
+    const items = itemsText.split('\n').filter(line => line.trim()).map(line => line.trim());
+    
+    if (items.length === 0) {
+        alert('請輸入至少一個關鍵字');
+        return;
+    }
+    
+    fetch(`/admin/goal-lists/${listId}/add-items`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({ items: items })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`已新增 ${data.count} 個項目`);
+            location.reload();
+        } else {
+            alert(data.message || '新增失敗');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('新增失敗');
+    });
+});
+
+function toggleGoalList(listId) {
+    fetch(`/admin/goal-lists/${listId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || '操作失敗');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('操作失敗');
+    });
+}
+
+function deleteGoalList(listId) {
+    if (!confirm('確定要刪除此目標清單嗎?\n所有未完成的項目也將被刪除。\n此操作無法復原!')) {
+        return;
+    }
+    
+    fetch(`/admin/goal-lists/${listId}/delete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = '{{ url_for("admin.manage_goal_lists") }}';
+        } else {
+            alert(data.message || '刪除失敗');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('刪除失敗');
+    });
+}
+
+function deleteItem(itemId, title) {
+    if (!confirm(`確定要刪除項目「${title}」嗎?\n此操作無法復原!`)) {
+        return;
+    }
+    
+    fetch(`/admin/goal-items/${itemId}/delete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || '刪除失敗');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('刪除失敗');
+    });
+}
+
+function markComplete(itemId) {
+    fetch(`/admin/goal-items/${itemId}/mark-complete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || '操作失敗');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('操作失敗');
+    });
+}
+
+function markIncomplete(itemId) {
+    if (!confirm('確定要取消完成標記嗎?')) {
+        return;
+    }
+    
+    fetch(`/admin/goal-items/${itemId}/mark-incomplete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || '操作失敗');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('操作失敗');
+    });
+}
+</script>
+{% endblock %}

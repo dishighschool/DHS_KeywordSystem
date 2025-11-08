@@ -1,0 +1,233 @@
+{% extends "admin/base.html" %}
+
+{% block title %}關鍵字自動連結設定{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h2">
+    <i class="bi bi-link-45deg me-2"></i>關鍵字自動連結設定
+  </h1>
+</div>
+
+<div class="row g-4">
+  
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3">
+        <h5 class="mb-0">
+          <i class="bi bi-info-circle me-2 text-primary"></i>功能說明
+        </h5>
+      </div>
+      <div class="card-body">
+        <p class="lead mb-4">
+          關鍵字自動連結功能會在顯示關鍵字內容時,自動將提及的其他關鍵字轉換為可點擊的超連結。
+        </p>
+
+        <h6 class="fw-bold mb-3">
+          <i class="bi bi-check-circle text-success me-2"></i>功能特色
+        </h6>
+        <ul class="list-unstyled mb-4">
+          <li class="mb-2">
+            <i class="bi bi-arrow-right text-primary me-2"></i>
+            自動識別內容中的關鍵字標題
+          </li>
+          <li class="mb-2">
+            <i class="bi bi-arrow-right text-primary me-2"></i>
+            避免重複連結當前頁面的關鍵字
+          </li>
+          <li class="mb-2">
+            <i class="bi bi-arrow-right text-primary me-2"></i>
+            智能避免 HTML 標籤內的文字
+          </li>
+          <li class="mb-2">
+            <i class="bi bi-arrow-right text-primary me-2"></i>
+            優先匹配較長的關鍵字名稱
+          </li>
+          <li class="mb-2">
+            <i class="bi bi-arrow-right text-primary me-2"></i>
+            提供視覺提示的連結樣式
+          </li>
+        </ul>
+
+        <h6 class="fw-bold mb-3">
+          <i class="bi bi-gear text-info me-2"></i>運作方式
+        </h6>
+        <ol class="mb-4">
+          <li class="mb-2">系統讀取所有關鍵字標題</li>
+          <li class="mb-2">在 Markdown 轉 HTML 後進行文字掃描</li>
+          <li class="mb-2">將匹配的關鍵字轉換為超連結</li>
+          <li class="mb-2">連結指向對應的關鍵字詳細頁面</li>
+          <li class="mb-2">套用特殊樣式以區別普通連結</li>
+        </ol>
+
+        <div class="alert alert-info border-0">
+          <i class="bi bi-lightbulb me-2"></i>
+          <strong>提示:</strong> 此功能已預設啟用,無需額外設定。只要在關鍵字內容中提及其他關鍵字的標題,就會自動建立連結。
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="card border-0 shadow-sm mt-4">
+      <div class="card-header bg-white py-3">
+        <h5 class="mb-0">
+          <i class="bi bi-file-text me-2 text-success"></i>範例展示
+        </h5>
+      </div>
+      <div class="card-body">
+        <h6 class="fw-bold mb-3">原始內容 (Markdown)</h6>
+        <pre class="bg-light p-3 rounded"><code>## 物理學基礎
+
+物理學是研究物質、能量和它們之間相互作用的自然科學。
+在學習物理之前,建議先了解**數學**的基礎概念。
+
+相關主題:
+- 力學涉及牛頓運動定律
+- 熱力學探討能量轉換
+- 電磁學研究電和磁的現象</code></pre>
+
+        <h6 class="fw-bold mb-3 mt-4">處理後效果</h6>
+        <div class="border rounded p-3 bg-white">
+          <h2 style="font-size: 1.5rem; font-weight: 600; color: #667eea; margin-bottom: 1rem;">物理學基礎</h2>
+          <p style="line-height: 1.8; margin-bottom: 1rem;">
+            物理學是研究物質、能量和它們之間相互作用的自然科學。
+            在學習物理之前,建議先了解
+            <a href="#" class="keyword-link" style="color: #667eea; font-weight: 600; text-decoration: none; border-bottom: 2px solid transparent; padding: 0 2px;" title="查看關鍵字: 數學">數學</a>
+            的基礎概念。
+          </p>
+          <p style="margin-bottom: 0.5rem; font-weight: 600;">相關主題:</p>
+          <ul style="list-style: disc; padding-left: 2rem;">
+            <li style="margin-bottom: 0.5rem;">
+              <a href="#" class="keyword-link" style="color: #667eea; font-weight: 600; text-decoration: none;" title="查看關鍵字: 力學">力學</a>
+              涉及牛頓運動定律
+            </li>
+            <li style="margin-bottom: 0.5rem;">
+              <a href="#" class="keyword-link" style="color: #667eea; font-weight: 600; text-decoration: none;" title="查看關鍵字: 熱力學">熱力學</a>
+              探討能量轉換
+            </li>
+            <li style="margin-bottom: 0.5rem;">
+              <a href="#" class="keyword-link" style="color: #667eea; font-weight: 600; text-decoration: none;" title="查看關鍵字: 電磁學">電磁學</a>
+              研究電和磁的現象
+            </li>
+          </ul>
+        </div>
+
+        <div class="alert alert-success border-0 mt-3 mb-0">
+          <i class="bi bi-check-circle me-2"></i>
+          注意到「數學」、「力學」、「熱力學」和「電磁學」都自動變成了可點擊的連結!
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3">
+        <h5 class="mb-0">
+          <i class="bi bi-graph-up me-2 text-success"></i>統計資訊
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="d-flex align-items-center p-3 bg-light rounded-3 mb-3">
+          <div class="flex-shrink-0">
+            <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+              <i class="bi bi-file-earmark-text text-primary fs-4"></i>
+            </div>
+          </div>
+          <div class="flex-grow-1 ms-3">
+            <div class="text-muted small">可連結關鍵字</div>
+            <div class="fs-4 fw-bold text-dark">{{ total_keywords }}</div>
+          </div>
+        </div>
+
+        <div class="alert alert-light border mb-0">
+          <small class="text-muted">
+            <i class="bi bi-info-circle me-1"></i>
+            系統會自動掃描所有 {{ total_keywords }} 個關鍵字,並在內容中建立相應的連結。
+          </small>
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="card border-0 shadow-sm mt-4">
+      <div class="card-header bg-white py-3">
+        <h5 class="mb-0">
+          <i class="bi bi-star me-2 text-warning"></i>最佳實踐
+        </h5>
+      </div>
+      <div class="card-body">
+        <ul class="list-unstyled mb-0">
+          <li class="mb-3">
+            <i class="bi bi-check-circle text-success me-2"></i>
+            <small>使用完整的關鍵字標題</small>
+          </li>
+          <li class="mb-3">
+            <i class="bi bi-check-circle text-success me-2"></i>
+            <small>避免使用縮寫或簡稱</small>
+          </li>
+          <li class="mb-3">
+            <i class="bi bi-check-circle text-success me-2"></i>
+            <small>在適當的上下文中提及</small>
+          </li>
+          <li class="mb-0">
+            <i class="bi bi-check-circle text-success me-2"></i>
+            <small>建立有意義的知識網絡</small>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    
+    <div class="card border-0 shadow-sm mt-4">
+      <div class="card-header bg-white py-3">
+        <h5 class="mb-0">
+          <i class="bi bi-code-square me-2 text-info"></i>技術細節
+        </h5>
+      </div>
+      <div class="card-body">
+        <ul class="list-unstyled small text-muted mb-0">
+          <li class="mb-2">
+            <i class="bi bi-dot"></i>
+            使用正則表達式匹配關鍵字
+          </li>
+          <li class="mb-2">
+            <i class="bi bi-dot"></i>
+            避免 HTML 標籤內的文字
+          </li>
+          <li class="mb-2">
+            <i class="bi bi-dot"></i>
+            忽略已存在的連結
+          </li>
+          <li class="mb-2">
+            <i class="bi bi-dot"></i>
+            按長度排序避免部分匹配
+          </li>
+          <li class="mb-0">
+            <i class="bi bi-dot"></i>
+            不區分大小寫匹配
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .keyword-link {
+    color: #667eea !important;
+    text-decoration: none !important;
+    font-weight: 600 !important;
+    border-bottom: 2px solid #667eea !important;
+    padding: 0 2px !important;
+    transition: all 0.3s ease !important;
+  }
+  
+  .keyword-link:hover {
+    color: #764ba2 !important;
+    background: rgba(102, 126, 234, 0.1) !important;
+    border-radius: 2px !important;
+  }
+</style>
+{% endblock %}

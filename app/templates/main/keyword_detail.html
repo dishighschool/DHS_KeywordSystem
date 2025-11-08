@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}{{ display_title }}{% endblock %}
+{% block meta_title %}{{ display_title }} | 迪斯中學學習平台{% endblock %}
+{% block meta_description %}{{ keyword.description_markdown|striptags|truncate(150, True, '...') }}{% endblock %}
+{% block meta_keywords %}{{ display_title }},{{ keyword.title }},{{ keyword.category.name }},學習關鍵字,教育資源{% endblock %}
+
+{% block og_type %}article{% endblock %}
+{% block og_title %}{{ display_title }}{% endblock %}
+{% block og_description %}{{ keyword.description_markdown|striptags|truncate(150, True, '...') }}{% endblock %}
+
+{% block structured_data %}
+{{ super() }}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "{{ display_title }}",
+  "description": "{{ keyword.description_markdown|striptags|truncate(200, True, '...') }}",
+  "author": {
+    "@type": "Person",
+    "name": "{{ keyword.author.username }}"
+  },
+  "datePublished": "{{ keyword.created_at.isoformat() }}",
+  "dateModified": "{{ last_modified.isoformat() }}",
+  {% if is_alias %}
+  "mainEntityOfPage": "{{ canonical_url }}",
+  "alternateName": "{{ keyword.title }}",
+  "isPartOf": {
+    "@type": "CreativeWork",
+    "name": "{{ keyword.title }}",
+    "@id": "{{ canonical_url }}"
+  },
+  {% else %}
+  "articleSection": "{{ keyword.category.name }}",
+  {% endif %}
+  "inLanguage": "zh-TW"
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="keyword-detail-page py-3 py-md-4" itemscope itemtype="https://schema.org/Article">
+  
+  <nav aria-label="breadcrumb" class="mb-3 mb-md-4">
+    <ol class="breadcrumb small">
+      <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}" class="text-decoration-none">
+        <i class="bi bi-house-fill me-1"></i><span class="d-none d-sm-inline">首頁</span>
+      </a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('main.category_detail', slug=keyword.category.slug) }}" class="text-decoration-none">
+        {{ keyword.category.name }}
+      </a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ display_title }}</li>
+    </ol>
+  </nav>
+
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+      
+      
+      <div class="meta-info mb-3 d-flex flex-wrap align-items-center gap-3 text-muted">
+        <span itemprop="author" itemscope itemtype="https://schema.org/Person" class="d-flex align-items-center gap-1">
+          <i class="bi bi-person"></i><span itemprop="name">{{ keyword.author.username }}</span>
+        </span>
+        <span class="text-muted d-none d-sm-inline">•</span>
+        <time datetime="{{ last_modified.isoformat() }}" itemprop="dateModified" class="d-none d-sm-flex align-items-center gap-1">
+          <i class="bi bi-clock"></i><span>{{ last_modified.strftime('%Y年%m月%d日') }}</span>
+        </time>
+        <span class="text-muted d-none d-sm-inline">•</span>
+        <span class="badge bg-primary-subtle px-3 py-1 d-flex align-items-center gap-1" title="觀看次數">
+          <i class="bi bi-eye-fill"></i><span>{{ keyword.view_count }}<span class="d-none d-sm-inline"> 次觀看</span></span>
+        </span>
+      </div>
+      
+      
+      <div class="keyword-main-card card border-0 rounded-md-4 overflow-hidden mb-4">
+        <div class="card-header p-4 p-md-5 border-0">
+          <h1 class="md3-display-small fw-bold mb-0" itemprop="headline">
+            {{ display_title }}
+          </h1>
+          {% if alternative_names %}
+          <div class="mt-3 pt-2">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+              <span class="badge bg-white bg-opacity-10 px-2 py-1 rounded-pill md3-label-small" style="font-weight: 500;">別稱</span>
+              {% for alt_name in alternative_names %}
+              <a class="badge bg-white bg-opacity-25 text-white text-decoration-none px-3 py-2 rounded-pill hover-bg-white md3-label-medium d-flex align-items-center" 
+                 href="{{ alt_name.url }}"
+                 style="transition: all 0.2s; font-weight: 600;">
+                {{ alt_name.title }}
+              </a>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        
+        <div class="card-body p-4 p-md-5">
+          <div class="keyword-description" itemprop="articleBody">
+            <div class="markdown-body md3-body-large lh-lg">
+              {{ html_description|safe }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      
+      {% if keyword.videos %}
+      <div class="videos-section mb-4">
+        <h2 class="md3-headline-medium fw-bold mb-4">
+          <i class="bi bi-play-btn-fill text-danger me-2"></i>相關影音<span class="d-none d-sm-inline">教材</span>
+        </h2>
+        
+        <div class="row g-3 g-md-4">
+          {% for video in keyword.videos %}
+          <div class="col-12 col-lg-6" itemscope itemtype="https://schema.org/VideoObject">
+            <div class="video-card card border-0 rounded-md-4 overflow-hidden h-100 hover-lift-sm">
+              <div class="ratio ratio-16x9 bg-dark">
+                {# 使用 YouTube 過濾器處理所有 URL 格式 #}
+                <iframe src="{{ video.url|youtube_embed }}" 
+                        title="{{ video.title or keyword.title }}" 
+                        allowfullscreen 
+                        loading="lazy"
+                        frameborder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        itemprop="embedUrl"></iframe>
+              </div>
+              <div class="card-body p-3 p-md-4">
+                <h3 class="md3-title-medium fw-bold mb-3" itemprop="name">
+                  {{ video.title or '相關教學影片' }}
+                </h3>
+                <a class="btn btn-danger btn-lg w-100 rounded-pill" 
+                   href="{{ video.url }}" 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   itemprop="url">
+                  <i class="bi bi-youtube me-2"></i>在 YouTube 觀看
+                </a>
+                <meta itemprop="uploadDate" content="{{ keyword.created_at.isoformat() }}">
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      
+      {% if related_keywords %}
+      <div class="related-keywords-section mb-3 mb-md-4">
+        <h2 class="h4 h3-md fw-bold text-dark mb-3 mb-md-4">
+          <i class="bi bi-collection me-2 text-primary"></i>{{ keyword.category.name }} <span class="d-none d-sm-inline">分類的</span>其他關鍵字
+        </h2>
+        
+        <div class="row g-2 g-md-3">
+          {% for related in related_keywords %}
+          <div class="col-6 col-md-4 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 hover-lift-sm">
+              <div class="card-body p-2 p-md-3" style="min-height: 70px; display: table; width: 100%;">
+                <h3 class="h6 h5-md mb-0 fw-bold text-center" style="display: table-cell; vertical-align: middle;">
+                  <a href="{{ url_for('main.keyword_detail', category_slug=related.category.name|slugify, slug=related.slug) }}" 
+                     class="stretched-link text-decoration-none text-dark hover-primary"
+                     style="line-height: 1.4;">
+                    {{ related.title }}
+                  </a>
+                </h3>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      
+      {% if seo_content %}
+      <div class="seo-section mt-5 pt-4">
+        <div class="container-fluid px-0">
+          {% set lines = seo_content.split('\n') %}
+          {% set title_line = lines[0] if lines else '' %}
+          {% set content_lines = lines[1:] if lines|length > 1 else [] %}
+          
+          
+          {% if title_line %}
+          <h3 class="seo-heading mb-4">
+            <i class="bi bi-search me-2"></i>{{ title_line }}
+          </h3>
+          {% endif %}
+          
+          
+          <div class="seo-content-body">
+            {% for line in content_lines %}
+              {% if line.strip() %}
+                {% if line.startswith('相關搜尋：') %}
+                  
+                  <div class="seo-questions mt-4">
+                    <h5 class="mb-3">
+                      <i class="bi bi-tags-fill me-2"></i>相關搜尋
+                    </h5>
+                    <div class="d-flex flex-wrap gap-2">
+                      {% set queries = line.replace('相關搜尋：', '').split('、') %}
+                      {% for query in queries %}
+                        {% if query.strip() %}
+                        <span class="badge rounded-pill">
+                          {{ query.strip() }}
+                        </span>
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+                  </div>
+                {% else %}
+                  
+                  <p class="seo-paragraph">
+                    {{ line }}
+                  </p>
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      
+      <div class="text-center mt-4 mt-md-5">
+        <a href="{{ url_for('main.index') }}" 
+           class="btn btn-lg btn-outline-primary rounded-pill px-4 px-md-5 py-2 py-md-3">
+          <i class="bi bi-arrow-left-circle me-2"></i><span class="d-none d-sm-inline">返回</span>關鍵字列表
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/keyword-detail.css', v='3') }}">
+{% if is_alias and canonical_url %}
+<link rel="canonical" href="{{ canonical_url }}">
+{% endif %}
+{% endblock %}

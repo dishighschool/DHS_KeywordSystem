@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="zh-Hant" prefix="og: https://ogp.me/ns#">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#667eea">
+    
+    
+    <title>{% block title %}學習關鍵字百科{% endblock %}{% if site_settings.site_title_suffix %} | {{ site_settings.site_title_suffix }}{% else %} | 迪斯中學學習平台{% endif %}</title>
+    <meta name="title" content="{% block meta_title %}學習關鍵字百科{% if site_settings.site_title_suffix %} | {{ site_settings.site_title_suffix }}{% else %} | 迪斯中學學習平台{% endif %}{% endblock %}">
+    <meta name="description" content="{% block meta_description %}探索豐富的學習關鍵字資源，提供詳細的知識說明與精選影音教材，助您掌握核心概念。{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}學習關鍵字,教育資源,影音教材,知識百科,線上學習{% endblock %}">
+    <meta name="author" content="迪斯中學">
+    
+    
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:title" content="{% block og_title %}{{ self.meta_title() }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ self.meta_description() }}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='images/og-default.png', _external=True) }}{% endblock %}">
+    <meta property="og:locale" content="zh_TW">
+    
+    
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{{ request.url }}">
+    <meta property="twitter:title" content="{% block twitter_title %}{{ self.meta_title() }}{% endblock %}">
+    <meta property="twitter:description" content="{% block twitter_description %}{{ self.meta_description() }}{% endblock %}">
+    <meta property="twitter:image" content="{% block twitter_image %}{{ self.og_image() }}{% endblock %}">
+    
+    
+    <link rel="canonical" href="{% block canonical %}{{ request.url }}{% endblock %}">
+    
+    
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="preload" href="{{ url_for('static', filename='css/site.css', v='3') }}" as="style">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css', v='3') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index-redesign.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-optimized.css', v='21') }}">
+    
+    
+    {% block structured_data %}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "EducationalOrganization",
+      "name": "迪斯中學學習關鍵字平台",
+      "url": "{{ request.host_url }}",
+      "description": "提供豐富的學習關鍵字資源與影音教材"
+    }
+    </script>
+    {% endblock %}
+    
+    {% block extra_head %}{% endblock %}
+  </head>
+  <body>
+    
+    <a href="#main-content" class="visually-hidden-focusable">跳至主要內容</a>
+    
+    <header class="site-header border-bottom sticky-top shadow-sm">
+      
+      {% if announcements and announcements|length > 0 %}
+      <div class="announcement-banner-md3">
+        <div class="container">
+          <div class="announcement-content-md3">
+            {% if announcements|length == 1 %}
+              {% if announcements[0].url %}
+              <a href="{{ announcements[0].url }}" class="announcement-link-md3" target="_blank" rel="noopener">
+                <i class="bi {{ announcements[0].icon }}"></i>
+                <span>{{ announcements[0].text }}</span>
+              </a>
+              {% else %}
+              <div class="announcement-text-md3">
+                <i class="bi {{ announcements[0].icon }}"></i>
+                <span>{{ announcements[0].text }}</span>
+              </div>
+              {% endif %}
+            {% else %}
+              <div id="announcementCarousel" class="carousel slide carousel-fade w-100" data-bs-ride="carousel" data-bs-interval="5000">
+                <div class="carousel-inner">
+                  {% for announcement in announcements %}
+                  <div class="carousel-item {% if loop.first %}active{% endif %}">
+                    {% if announcement.url %}
+                    <a href="{{ announcement.url }}" class="announcement-link-md3" target="_blank" rel="noopener">
+                      <i class="bi {{ announcement.icon }}"></i>
+                      <span>{{ announcement.text }}</span>
+                    </a>
+                    {% else %}
+                    <div class="announcement-text-md3">
+                      <i class="bi {{ announcement.icon }}"></i>
+                      <span>{{ announcement.text }}</span>
+                    </div>
+                    {% endif %}
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      
+      <nav class="navbar navbar-expand-lg container py-2 py-md-3" role="navigation" aria-label="主導航">
+        
+        <div class="mobile-top-app-bar d-lg-none w-100">
+          <button class="mobile-nav-icon" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="展開導航選單">
+            <i class="bi bi-list"></i>
+          </button>
+          <a href="/" class="mobile-title-section text-decoration-none">
+            {% if site_settings.header_logo_url %}
+            <img src="{{ site_settings.header_logo_url }}" alt="Logo" class="mobile-logo">
+            {% endif %}
+            <span class="mobile-title">{{ site_settings.site_title or "學習關鍵字" }}</span>
+          </a>
+          <button id="mobileSearchBtn" class="mobile-search-icon" aria-label="搜尋" title="搜尋關鍵字">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+        
+        
+        <a class="navbar-brand d-none d-lg-flex align-items-center text-decoration-none" href="/" title="返回首頁">
+          {% if site_settings.header_logo_url %}
+          <img src="{{ site_settings.header_logo_url }}" alt="{{ site_settings.site_title or '學習平台' }} Logo" class="brand-logo me-2" width="40" height="40" loading="lazy">
+          {% endif %}
+          <div class="d-flex flex-column">
+            <span class="fw-bold fs-6 fs-md-5 text-primary">{{ site_settings.site_title or "學習關鍵字" }}</span>
+            {% if site_settings.site_subtitle %}
+            <small class="text-muted" style="font-size: 0.75rem; line-height: 1;">{{ site_settings.site_subtitle }}</small>
+            {% endif %}
+          </div>
+        </a>
+        
+        <div class="collapse navbar-collapse" id="mainNav">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0 align-items-lg-center gap-1">
+            {% for link in nav_links %}
+            {% if link.url and not link.url.startswith('/admin') %}
+            <li class="nav-item">
+              <a class="nav-link px-3 py-2 rounded-pill" href="{{ link.url }}" {% if loop.index0 == 0 %}aria-current="page"{% endif %}>
+                {% if link.icon %}<i class="{{ link.icon }} me-1"></i>{% endif %}
+                {{ link.label }}
+              </a>
+            </li>
+            {% endif %}
+            {% endfor %}
+          </ul>
+          
+          
+          <div class="navbar-search-wrapper position-relative mt-2 mt-lg-0 d-none d-lg-block" style="max-width: 400px; width: 100%;">
+            <input type="search" 
+                   id="globalSearch" 
+                   class="form-control pe-5 py-2" 
+                   placeholder="搜尋關鍵字..." 
+                   aria-label="全站搜尋"
+                   autocomplete="off"
+                   inputmode="search">
+            <i class="bi bi-search position-absolute top-50 end-0 translate-middle-y me-3 text-muted"></i>
+            
+            
+            <div id="searchResults" class="search-results-dropdown position-absolute w-100 mt-2 d-none" style="max-height: 400px; overflow-y: auto; z-index: 1050;">
+              <div class="p-3 text-center text-muted" id="searchLoading">
+                <div class="spinner-border spinner-border-sm me-2" role="status">
+                  <span class="visually-hidden">載入中...</span>
+                </div>
+                搜尋中...
+              </div>
+              <div id="searchResultsList"></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    
+    <div id="mobileSearchModal" class="mobile-search-modal">
+      <div class="mobile-search-header">
+        <button id="closeMobileSearch" class="mobile-close-btn" aria-label="關閉搜尋">
+          <i class="bi bi-arrow-left fs-4"></i>
+        </button>
+        <input type="search" 
+               id="mobileSearchInput" 
+               class="form-control" 
+               placeholder="搜尋關鍵字..." 
+               aria-label="行動版搜尋"
+               autocomplete="off"
+               inputmode="search">
+      </div>
+      <div id="mobileSearchResults" class="mobile-search-results">
+        <div class="p-4 text-center text-muted" id="mobileSearchLoading">
+          <div class="spinner-border spinner-border-sm me-2" role="status">
+            <span class="visually-hidden">載入中...</span>
+          </div>
+          搜尋中...
+        </div>
+        <div id="mobileSearchResultsList"></div>
+      </div>
+    </div>
+
+    <main id="main-content" class="container mb-4 mb-md-5" role="main">
+      {% with messages = get_flashed_messages(with_categories=True) %}
+        {% if messages %}
+        <div class="flash-wrapper mt-3 mt-md-4" role="alert" aria-live="polite">
+          {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show mb-3" role="alert">
+            <div class="d-flex align-items-center">
+              {% if category == 'success' %}
+              <i class="bi bi-check-circle-fill fs-5 me-3 flex-shrink-0"></i>
+              {% elif category == 'danger' %}
+              <i class="bi bi-exclamation-triangle-fill fs-5 me-3 flex-shrink-0"></i>
+              {% elif category == 'warning' %}
+              <i class="bi bi-exclamation-circle-fill fs-5 me-3 flex-shrink-0"></i>
+              {% else %}
+              <i class="bi bi-info-circle-fill fs-5 me-3 flex-shrink-0"></i>
+              {% endif %}
+              <span class="flex-grow-1">{{ message }}</span>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="關閉通知"></button>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+
+    
+    <button id="backToTop" 
+            class="btn position-fixed d-flex align-items-center justify-content-center" 
+            aria-label="返回頂部"
+            title="返回頂部">
+      <i class="bi bi-arrow-up fs-5"></i>
+    </button>
+
+    <footer class="site-footer border-top py-4 py-md-5 mt-auto" role="contentinfo">
+      <div class="container">
+        <div class="row g-3 g-md-4">
+          <div class="col-12 col-lg-6">
+            <div class="d-flex align-items-center mb-2 mb-md-3">
+              {% if site_settings.footer_logo_url %}
+              <img src="{{ site_settings.footer_logo_url }}" alt="{{ site_settings.footer_title or site_settings.site_title or '學習平台' }} Logo" class="footer-logo me-2 me-md-3" width="40" height="40" loading="lazy">
+              {% endif %}
+              <div>
+                <h2 class="mb-1 fw-bold">{{ site_settings.footer_title or site_settings.site_title or "學習關鍵字平台" }}</h2>
+                {% if site_settings.footer_description %}
+                <p class="text-muted mb-0 md3-body-small">{{ site_settings.footer_description }}</p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-lg-6">
+            <div class="d-flex flex-wrap gap-3 justify-content-lg-end align-items-center">
+              {% for link in footer_links %}
+              <a class="text-decoration-none text-muted hover-primary transition-all md3-body-medium" 
+                 href="{{ link.url }}" 
+                 target="_blank" 
+                 rel="noopener noreferrer"
+                 title="{{ link.label }}">
+                {% if link.icon %}<i class="{{ link.icon }} fs-5"></i>{% endif %}
+                <span class="ms-1 d-none d-sm-inline">{{ link.label }}</span>
+              </a>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        <hr class="my-3 my-md-4">
+        <div class="text-center text-muted md3-body-small">
+          <p class="mb-0">{{ site_settings.footer_copy or "© 2025 學習關鍵字平台 版權所有" }}</p>
+        </div>
+      </div>
+    </footer>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="{{ url_for('static', filename='js/mobile-nav.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ripple.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/global-search.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/mobile-search.js') }}"></script>
+    
+    
+    <script>
+      (function() {
+        function adjustMainPadding() {
+          if (window.innerWidth <= 991) {
+            const header = document.querySelector('.site-header');
+            const main = document.querySelector('main');
+            const banner = document.querySelector('.announcement-banner-md3');
+            
+            if (header && main) {
+              const headerHeight = header.offsetHeight;
+              main.style.paddingTop = headerHeight + 'px';
+              
+              // 設定 CSS 變數供 navbar-collapse 使用
+              const bannerHeight = banner ? banner.offsetHeight : 0;
+              document.documentElement.style.setProperty('--announcement-height', bannerHeight + 'px');
+            }
+          } else {
+            const main = document.querySelector('main');
+            if (main) {
+              main.style.paddingTop = '';
+            }
+            document.documentElement.style.setProperty('--announcement-height', '0px');
+          }
+        }
+        
+        // Adjust on load
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', adjustMainPadding);
+        } else {
+          adjustMainPadding();
+        }
+        
+        // Adjust on resize (debounced)
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+          clearTimeout(resizeTimeout);
+          resizeTimeout = setTimeout(adjustMainPadding, 100);
+        });
+        
+        // 防止輪播切換時高度跳動和文字走位
+        const carousel = document.querySelector('#announcementCarousel');
+        if (carousel) {
+          // 禁用 Bootstrap 的 transform 動畫
+          carousel.addEventListener('slide.bs.carousel', function(e) {
+            const items = carousel.querySelectorAll('.carousel-item');
+            items.forEach(item => {
+              item.style.transform = 'none';
+              item.style.transition = 'opacity 0.3s ease-in-out';
+            });
+          });
+          
+          carousel.addEventListener('slid.bs.carousel', function(e) {
+            const items = carousel.querySelectorAll('.carousel-item');
+            items.forEach(item => {
+              item.style.transform = 'none';
+            });
+          });
+        }
+      })();
+    </script>
+    
+    
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/static/sw.js')
+            .then(registration => console.log('SW registered'))
+            .catch(err => console.log('SW registration failed'));
+        });
+      }
+    </script>
+    
+    
+    <script>
+      (function() {
+        const backToTop = document.getElementById('backToTop');
+        if (!backToTop) return;
+        
+        window.addEventListener('scroll', () => {
+          if (window.scrollY > 100) {
+            backToTop.classList.add('visible');
+          } else {
+            backToTop.classList.remove('visible');
+          }
+        });
+        
+        backToTop.addEventListener('click', () => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      })();
+    </script>
+    
+    {% block extra_scripts %}{% endblock %}
+  </body>
+</html>

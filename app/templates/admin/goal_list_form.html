@@ -1,0 +1,139 @@
+{% extends "admin/base.html" %}
+
+{% block title %}新增目標清單{% endblock %}
+
+{% block page_title %}新增目標清單{% endblock %}
+{% block page_subtitle %}批量導入關鍵字計畫{% endblock %}
+{% block page_icon_class %}bi bi-plus-circle{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h5 class="admin-card-title">
+                    <i class="admin-card-icon bi bi-file-earmark-text"></i>
+                    清單資訊
+                </h5>
+            </div>
+            <div class="admin-card-body">
+                <form method="POST" action="{{ url_for('admin.create_goal_list') }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label fw-semibold") }}
+                        {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
+                        {% if form.name.errors %}
+                            {% for error in form.name.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="form-text">例如: 高中數學必學概念、國中理化基礎</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.category_name.label(class="form-label fw-semibold") }}
+                        {{ form.category_name(class="form-control" + (" is-invalid" if form.category_name.errors else "")) }}
+                        {% if form.category_name.errors %}
+                            {% for error in form.category_name.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                從此清單創建的關鍵字會自動放入此分類(如不存在會自動創建)
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label fw-semibold") }}
+                        {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else "")) }}
+                        {% if form.description.errors %}
+                            {% for error in form.description.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.keywords_text.label(class="form-label fw-semibold") }}
+                        {{ form.keywords_text(class="form-control font-monospace" + (" is-invalid" if form.keywords_text.errors else "")) }}
+                        {% if form.keywords_text.errors %}
+                            {% for error in form.keywords_text.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="form-text">
+                                <i class="bi bi-lightbulb me-1"></i>
+                                每行輸入一個關鍵字標題,系統會自動計數
+                            </div>
+                        {% endif %}
+                        <div class="mt-2">
+                            <span class="badge bg-info" id="keywordCount">0 個關鍵字</span>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a href="{{ url_for('admin.manage_goal_lists') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-2"></i>取消
+                        </a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h5 class="admin-card-title">
+                    <i class="admin-card-icon bi bi-question-circle"></i>
+                    使用說明
+                </h5>
+            </div>
+            <div class="admin-card-body">
+                <h6 class="fw-bold mb-2">什麼是目標清單?</h6>
+                <p class="small text-muted">
+                    目標清單是一個協同工具,讓團隊成員可以看到待完成的關鍵字列表,
+                    並快速創建和編輯這些關鍵字。
+                </p>
+                
+                <h6 class="fw-bold mb-2 mt-3">如何使用?</h6>
+                <ol class="small text-muted">
+                    <li>輸入清單名稱和分類名稱</li>
+                    <li>在文本框中每行輸入一個關鍵字</li>
+                    <li>創建後,團隊成員可以在清單中看到所有待完成項目</li>
+                    <li>點擊「快速創建」即可創建關鍵字並開始編輯</li>
+                    <li>完成的項目會自動標記,並統計完成率</li>
+                </ol>
+                
+                <h6 class="fw-bold mb-2 mt-3">提示</h6>
+                <ul class="small text-muted mb-0">
+                    <li>空行會自動忽略</li>
+                    <li>可以隨時編輯清單狀態</li>
+                    <li>清單創建者和管理員可以管理清單</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('keywords_text');
+    const countBadge = document.getElementById('keywordCount');
+    
+    function updateCount() {
+        const text = textarea.value || '';
+        const lines = text.split('\n').filter(line => line.trim().length > 0);
+        countBadge.textContent = `${lines.length} 個關鍵字`;
+    }
+    
+    textarea.addEventListener('input', updateCount);
+    updateCount(); // 初始計數
+});
+</script>
+{% endblock %}

@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}400 - 錯誤的請求{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      
+      <div class="card border-0 shadow-sm" style="border-radius: var(--md-sys-shape-corner-extra-large, 28px); overflow: hidden;">
+        <div class="card-body p-4 p-md-5">
+          <div class="text-center">
+            
+            <div class="mb-4">
+              <div class="d-inline-flex align-items-center justify-content-center" 
+                   style="width: 120px; height: 120px; border-radius: var(--md-sys-shape-corner-extra-large, 28px); background: var(--md-sys-color-error-container, #FFDAD6);">
+                <i class="bi bi-exclamation-triangle-fill" style="font-size: 4rem; color: var(--md-sys-color-on-error-container, #410E0B);"></i>
+              </div>
+            </div>
+
+            
+            <h1 class="display-4 fw-bold mb-3" style="color: var(--md-sys-color-on-surface, #1C1B1F);">
+              請求錯誤
+            </h1>
+            <p class="h5 mb-2" style="color: var(--md-sys-color-error, #BA1A1A); font-weight: 500;">
+              錯誤代碼: 400
+            </p>
+            <p class="lead text-muted mb-5" style="max-width: 600px; margin-left: auto; margin-right: auto;">
+              抱歉,您的請求無法被處理。請檢查您的輸入資料是否正確
+            </p>
+
+            
+            <div class="d-flex flex-wrap gap-3 justify-content-center mb-5">
+              <a href="{{ url_for('main.index') }}" 
+                 class="btn btn-lg px-5"
+                 style="background: var(--md-sys-color-primary, #6750A4); color: var(--md-sys-color-on-primary, #FFFFFF); border: none; border-radius: var(--md-sys-shape-corner-full, 100px); font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.12);">
+                <i class="bi bi-house-door-fill me-2"></i>返回首頁
+              </a>
+              <button onclick="window.history.back()" 
+                      class="btn btn-lg px-5"
+                      style="background: var(--md-sys-color-surface-container-highest, #E6E1E5); color: var(--md-sys-color-on-surface, #1C1B1F); border: none; border-radius: var(--md-sys-shape-corner-full, 100px); font-weight: 500;">
+                <i class="bi bi-arrow-left me-2"></i>返回上一頁
+              </button>
+            </div>
+          </div>
+
+          
+          <div class="mt-5 pt-4" style="border-top: 1px solid var(--md-sys-color-outline-variant, #CAC4D0);">
+            <h5 class="text-center mb-4" style="color: var(--md-sys-color-on-surface-variant, #49454F); font-weight: 500;">
+              可能的原因
+            </h5>
+            <div class="row g-4">
+              <div class="col-md-6">
+                <div class="card h-100 border-0" 
+                     style="background: var(--md-sys-color-error-container, #FFDAD6); border-radius: var(--md-sys-shape-corner-large, 16px);">
+                  <div class="card-body p-4">
+                    <div class="d-flex align-items-start gap-3">
+                      <div class="flex-shrink-0">
+                        <div class="d-flex align-items-center justify-content-center" 
+                             style="width: 48px; height: 48px; border-radius: var(--md-sys-shape-corner-full, 24px); background: var(--md-sys-color-error, #BA1A1A);">
+                          <i class="bi bi-file-earmark-x" style="font-size: 1.5rem; color: var(--md-sys-color-on-error, #FFFFFF);"></i>
+                        </div>
+                      </div>
+                      <div>
+                        <h6 class="fw-semibold mb-2" style="color: var(--md-sys-color-on-error-container, #410E0B);">
+                          資料格式錯誤
+                        </h6>
+                        <p class="mb-0 small" style="color: var(--md-sys-color-on-error-container, #410E0B);">
+                          請求的資料格式不正確或包含無效的內容
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card h-100 border-0" 
+                     style="background: var(--md-sys-color-tertiary-container, #FFD8E4); border-radius: var(--md-sys-shape-corner-large, 16px);">
+                  <div class="card-body p-4">
+                    <div class="d-flex align-items-start gap-3">
+                      <div class="flex-shrink-0">
+                        <div class="d-flex align-items-center justify-content-center" 
+                             style="width: 48px; height: 48px; border-radius: var(--md-sys-shape-corner-full, 24px); background: var(--md-sys-color-tertiary, #7D5260);">
+                          <i class="bi bi-pencil-square" style="font-size: 1.5rem; color: var(--md-sys-color-on-tertiary, #FFFFFF);"></i>
+                        </div>
+                      </div>
+                      <div>
+                        <h6 class="fw-semibold mb-2" style="color: var(--md-sys-color-on-tertiary-container, #31111D);">
+                          請重新嘗試
+                        </h6>
+                        <p class="mb-0 small" style="color: var(--md-sys-color-on-tertiary-container, #31111D);">
+                          請返回上一頁並檢查您的輸入,然後重新提交
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
+          <div class="text-center mt-5">
+            <div class="d-inline-flex align-items-center gap-2 px-4 py-3" 
+                 style="background: var(--md-sys-color-surface-container-low, #F7F2FA); border-radius: var(--md-sys-shape-corner-medium, 12px);">
+              <i class="bi bi-info-circle" style="color: var(--md-sys-color-primary, #6750A4);"></i>
+              <span style="color: var(--md-sys-color-on-surface-variant, #49454F); font-size: 0.875rem;">
+                問題持續發生？
+                <a href="mailto:support@example.com" 
+                   style="color: var(--md-sys-color-primary, #6750A4); text-decoration: none; font-weight: 500;">
+                  聯繫管理員
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

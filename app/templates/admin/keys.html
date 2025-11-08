@@ -1,0 +1,143 @@
+{% extends "admin/base.html" %}
+{% block title %}註冊金鑰{% endblock %}
+{% block header_title %}註冊金鑰{% endblock %}
+{% block page_icon_class %}bi bi-key{% endblock %}
+{% block page_title %}註冊金鑰管理{% endblock %}
+{% block page_subtitle %}設定用戶和管理員註冊所需的金鑰{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8 mx-auto">
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <h2 class="admin-card-title">
+          <i class="bi bi-shield-lock admin-card-icon"></i>
+          金鑰設定
+        </h2>
+      </div>
+      <div class="admin-card-body">
+        <div class="alert alert-info border-0 mb-4">
+          <div class="d-flex">
+            <div class="me-3">
+              <i class="bi bi-info-circle-fill fs-4"></i>
+            </div>
+            <div>
+              <h5 class="alert-heading">金鑰說明</h5>
+              <p class="mb-0">註冊金鑰用於控制誰可以註冊成為網站成員。請妥善保管這些金鑰，並定期更換以確保安全。</p>
+            </div>
+          </div>
+        </div>
+
+        <form method="post" id="keysForm">
+          {{ form.hidden_tag() }}
+          
+          <div class="mb-4">
+            <label class="form-label fw-semibold d-flex align-items-center">
+              <i class="bi bi-person text-primary me-2"></i>
+              {{ form.user_key.label.text }}
+            </label>
+            <div class="input-group input-group-lg">
+              {{ form.user_key(class_='form-control font-monospace', placeholder='團隊成員註冊金鑰', id='userKeyInput') }}
+              <button type="button" class="btn btn-outline-secondary" onclick="generateKey('user')" title="隨機產生">
+                <i class="bi bi-arrow-repeat"></i>
+              </button>
+              <button type="button" class="btn btn-outline-secondary" onclick="copyKey('user')" title="複製">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+            <div class="form-text mt-2">此金鑰允許成員註冊為團隊成員，可以新增和編輯自己的關鍵字。</div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold d-flex align-items-center">
+              <i class="bi bi-shield-check text-danger me-2"></i>
+              {{ form.admin_key.label.text }}
+            </label>
+            <div class="input-group input-group-lg">
+              {{ form.admin_key(class_='form-control font-monospace', placeholder='管理員註冊金鑰', id='adminKeyInput') }}
+              <button type="button" class="btn btn-outline-secondary" onclick="generateKey('admin')" title="隨機產生">
+                <i class="bi bi-arrow-repeat"></i>
+              </button>
+              <button type="button" class="btn btn-outline-secondary" onclick="copyKey('admin')" title="複製">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+            <div class="form-text mt-2">
+              <i class="bi bi-exclamation-triangle text-warning me-1"></i>
+              此金鑰允許成員註冊為管理員，擁有完整權限。請<strong>務必小心保管</strong>！
+            </div>
+          </div>
+
+          <div class="d-grid gap-2">
+            {{ form.submit(class_='btn btn-primary btn-lg') }}
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="admin-card mt-4">
+      <div class="admin-card-header">
+        <h3 class="admin-card-title mb-0">
+          <i class="bi bi-lightbulb admin-card-icon"></i>
+          安全建議
+        </h3>
+      </div>
+      <div class="admin-card-body">
+        <ul class="mb-0">
+          <li class="mb-2">定期更換註冊金鑰，尤其在有成員離開時</li>
+          <li class="mb-2">不要在公開場合分享管理員金鑰</li>
+          <li class="mb-2">建議使用「隨機產生」功能創建高強度金鑰</li>
+          <li>記錄金鑰分發對象,便於追蹤和管理</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="copyToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body">
+        <i class="bi bi-check-circle me-2"></i>已複製到剪貼簿
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ super() }}
+<script>
+function generateKey(type) {
+  const key = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  
+  const input = document.getElementById(type === 'user' ? 'userKeyInput' : 'adminKeyInput');
+  input.value = key;
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  
+  // 添加動畫效果
+  input.classList.add('border-success');
+  setTimeout(() => input.classList.remove('border-success'), 1000);
+}
+
+function copyKey(type) {
+  const input = document.getElementById(type === 'user' ? 'userKeyInput' : 'adminKeyInput');
+  const value = input.value;
+  
+  if (!value) {
+    alert('請先輸入或生成金鑰');
+    return;
+  }
+  
+  navigator.clipboard.writeText(value).then(() => {
+    const toast = new bootstrap.Toast(document.getElementById('copyToast'));
+    toast.show();
+  }).catch(err => {
+    alert('複製失敗: ' + err);
+  });
+}
+</script>
+{% endblock %}

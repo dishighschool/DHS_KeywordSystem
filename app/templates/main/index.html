@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}學習關鍵字搜尋{% endblock %}
+{% block meta_title %}學習關鍵字搜尋 | 迪斯中學學習平台{% endblock %}
+{% block meta_description %}探索豐富的學習關鍵字資源，快速搜尋與瀏覽各分類主題，提供詳細的知識說明與精選影音教材。{% endblock %}
+{% block meta_keywords %}學習關鍵字搜尋,分類瀏覽,教育資源,知識百科,{{ categories|map(attribute='name')|join(',') }}{% endblock %}
+
+{% block structured_data %}
+{{ super() }}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "迪斯中學學習關鍵字平台",
+  "url": "{{ request.url_root }}",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "{{ request.url_root }}?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<section class="hero-section py-4 mb-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-10 col-xl-9">
+      <div class="card border-0 rounded-md-4 overflow-hidden md3-card-elevated">
+        <div class="card-body p-3 p-md-4">
+          
+          <div class="text-center mb-4">
+            <h1 class="md3-headline-large fw-bold text-primary mb-2 animate-fade-in d-flex align-items-center justify-content-center gap-2">
+              <i class="bi bi-mortarboard-fill"></i>
+              <span>學習關鍵字搜尋</span>
+            </h1>
+            <p class="text-muted mb-0 md3-body-medium">探索學習資源與影音教材</p>
+          </div>
+          
+          
+          <div class="search-container modern-search-container mb-4">
+            <label for="keywordSearch" class="form-label visually-hidden">搜尋學習關鍵字</label>
+            <div class="input-group modern-search">
+              <span class="input-group-text px-3 d-flex align-items-center">
+                <i class="bi bi-search"></i>
+              </span>
+              <input type="search" 
+                     class="form-control" 
+                     id="keywordSearch" 
+                     placeholder="搜尋關鍵字..."
+                     aria-label="搜尋學習關鍵字"
+                     autocomplete="off"
+                     inputmode="search">
+            </div>
+          </div>
+          
+          
+          <div class="category-filters">
+            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+              <h2 class="md3-title-small mb-0 fw-semibold d-flex align-items-center gap-2">
+                <i class="bi bi-filter-circle"></i>
+                <span>分類瀏覽</span>
+              </h2>
+              <div class="d-flex align-items-center gap-3">
+                
+                <div class="form-check form-switch mb-0">
+                  <input class="form-check-input" type="checkbox" role="switch" id="showAliasesToggle">
+                  <label class="form-check-label text-muted small" for="showAliasesToggle">
+                    <i class="bi bi-tag"></i>
+                    <span class="d-none d-sm-inline ms-1">顯示別名</span>
+                  </label>
+                </div>
+                <span class="badge bg-primary-subtle d-flex align-items-center" id="resultCount">共 {{ keywords|length }} 筆</span>
+              </div>
+            </div>
+            <div class="category-filters-scroll position-relative">
+              <div class="d-flex flex-nowrap gap-2 overflow-auto pb-2" id="categoryFilters" role="group" aria-label="分類篩選器">
+                <button class="btn btn-sm active rounded-pill px-3 category-btn flex-shrink-0 d-flex align-items-center gap-1" 
+                        data-category="all"
+                        aria-pressed="true">
+                  <i class="bi bi-grid-fill"></i>
+                  <span>全部</span>
+                </button>
+                {% for category in categories %}
+                <button class="btn btn-sm rounded-pill px-3 category-btn flex-shrink-0 d-flex align-items-center gap-1" 
+                        data-category="{{ category.id }}"
+                        aria-pressed="false"
+                        title="篩選 {{ category.name }} 分類">
+                  <i class="bi bi-tag-fill d-none d-sm-inline"></i>
+                  <span>{{ category.name }}</span>
+                </button>
+                {% endfor %}
+              </div>
+              
+              <div class="scroll-hint d-md-none position-absolute end-0 top-0 h-100 d-flex align-items-center pe-2">
+                <i class="bi bi-chevron-right text-muted"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% if categories %}
+
+<div id="searchResultsSection" class="search-results-section d-none mb-4">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-10 col-xl-9">
+        <div class="card border-0 rounded-md-4 overflow-hidden md3-card-elevated">
+          <div class="card-body p-3 p-md-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h2 class="md3-title-large mb-0 fw-semibold">
+                搜尋結果
+              </h2>
+              <button id="clearSearch" class="btn btn-sm btn-outline-primary rounded-pill">
+                <i class="bi bi-x-circle me-1"></i>
+                清除搜尋
+              </button>
+            </div>
+            <div id="searchResultsGrid" class="keyword-grid-flat">
+              
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="category-groups" id="keywordGrid">
+  {% for category in categories %}
+  {% set category_keywords = keywords | selectattr('category_id', 'equalto', category.id) | list %}
+  {% set category_aliases = aliases | selectattr('keyword.category_id', 'equalto', category.id) | list %}
+  
+  {# 只顯示有關鍵字的分類 #}
+  {% if category_keywords or category_aliases %}
+  <section class="keyword-category-section" 
+           data-category="{{ category.id }}" 
+           data-has-items="true">
+    
+    <div class="category-section-header">
+      <div class="row align-items-center g-3">
+        <div class="col-12 col-md-8">
+          <h2 class="category-section-title">
+            {{ category.name }}
+          </h2>
+          {% if category.description %}
+          <p class="category-section-description d-none d-md-block">{{ category.description }}</p>
+          {% endif %}
+        </div>
+        <div class="col-12 col-md-4 text-md-end">
+          <div class="d-flex align-items-center justify-content-md-end gap-3">
+            <span class="category-count">
+              <i class="bi bi-file-text me-1"></i>
+              {{ category_keywords|length }} 筆
+            </span>
+            <a href="{{ url_for('main.category_detail', slug=category.slug) }}" 
+               class="btn-view-all">
+              查看全部
+              <i class="bi bi-arrow-right"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    
+    <div class="keyword-grid">
+      {% for keyword in category_keywords %}
+      <article class="keyword-card-item" 
+               data-title="{{ keyword.title }}" 
+               data-category="{{ keyword.category_id }}" 
+               data-description="{{ keyword.description_markdown|striptags }}"
+               data-is-alias="false"
+               itemscope 
+               itemtype="https://schema.org/Article">
+        <a href="{{ url_for('main.keyword_detail', category_slug=keyword.category.name|slugify, slug=keyword.slug) }}" 
+           class="keyword-card-link"
+           itemprop="url">
+          <div class="keyword-card-content">
+            <h3 class="keyword-card-title" itemprop="headline">
+              {{ keyword.title }}
+            </h3>
+          </div>
+        </a>
+        <meta itemprop="author" content="{{ keyword.author.username }}">
+        <meta itemprop="dateModified" content="{{ keyword.updated_at.isoformat() }}">
+        <meta itemprop="description" content="{{ keyword.description_markdown|striptags|truncate(100, True, '...') }}">
+      </article>
+      {% endfor %}
+      
+      {% for alias in category_aliases %}
+      <article class="keyword-card-item keyword-card-alias d-none" 
+               data-title="{{ alias.title }}" 
+               data-category="{{ alias.keyword.category_id }}" 
+               data-description="{{ alias.keyword.description_markdown|striptags }}"
+               data-is-alias="true"
+               itemscope 
+               itemtype="https://schema.org/Article">
+        <a href="{{ url_for('main.keyword_detail', category_slug=alias.keyword.category.name|slugify, slug=alias.slug) }}" 
+           class="keyword-card-link"
+           itemprop="url">
+          <div class="keyword-card-content">
+            <h3 class="keyword-card-title" itemprop="headline">
+              {{ alias.title }}
+            </h3>
+          </div>
+        </a>
+        <meta itemprop="author" content="{{ alias.keyword.author.username }}">
+        <meta itemprop="dateModified" content="{{ alias.updated_at.isoformat() }}">
+        <meta itemprop="description" content="{{ alias.keyword.description_markdown|striptags|truncate(100, True, '...') }}">
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state-main">
+  <i class="bi bi-inbox"></i>
+  <p>目前尚未建立任何學習關鍵字,請稍後再試。</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/search.js') }}"></script>
+<script>
+// Search box focus effect
+(function() {
+  const searchInput = document.getElementById('keywordSearch');
+  if (!searchInput) return;
+  
+  searchInput.addEventListener('focus', function() {
+    this.parentElement.classList.add('shadow-lg');
+  });
+  
+  searchInput.addEventListener('blur', function() {
+    this.parentElement.classList.remove('shadow-lg');
+  });
+})();
+</script>
+{% endblock %}

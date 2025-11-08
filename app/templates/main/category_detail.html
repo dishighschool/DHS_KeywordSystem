@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+
+{% block title %}{{ category.name }}{% endblock %}
+{% block meta_title %}{{ category.name }} - 關鍵字列表 | 迪斯中學學習平台{% endblock %}
+{% block meta_description %}瀏覽 {{ category.name }} 分類下的所有學習關鍵字，快速搜尋並深入了解相關知識。{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/category-detail.css', v='2') }}">
+{% endblock %}
+
+{% block content %}
+<div class="category-detail-page py-3 py-md-4">
+  
+  <nav aria-label="breadcrumb" class="mb-3 mb-md-4">
+    <ol class="breadcrumb small">
+      <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}" class="text-decoration-none">
+        <i class="bi bi-house-fill me-1"></i><span class="d-none d-sm-inline">首頁</span>
+      </a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ category.name }}</li>
+    </ol>
+  </nav>
+
+  
+  <div class="category-header mb-4 mb-md-5">
+    <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 gap-3">
+      <div class="category-icon-lg d-flex align-items-center justify-content-center">
+        <i class="bi {{ category.icon }} text-primary" style="font-size: 3rem;"></i>
+      </div>
+      <div class="flex-grow-1">
+        <h1 class="md3-display-small fw-bold mb-2">{{ category.name }}</h1>
+        <p class="text-muted mb-0 md3-body-medium d-flex align-items-center flex-wrap gap-2">
+          <span class="d-flex align-items-center gap-1">
+            <i class="bi bi-collection"></i>
+            <span>共 <span class="fw-bold text-primary">{{ keywords|length }}</span> 個關鍵字</span>
+          </span>
+          {% if aliases %}
+          <span class="mx-1 d-none d-sm-inline">•</span>
+          <span class="d-none d-sm-inline"><span class="fw-bold text-secondary">{{ aliases|length }}</span> 個別名</span>
+          {% endif %}
+        </p>
+      </div>
+    </div>
+    
+    {% if category.description %}
+    <div class="alert alert-light border-0 md3-body-medium">
+      <p class="mb-0">{{ category.description }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  
+  <div class="search-filter-section mb-4">
+    <div class="row g-3">
+      <div class="col-12 col-lg-8">
+        <div class="input-group input-group-lg">
+          <span class="input-group-text bg-transparent border-end-0">
+            <i class="bi bi-search text-muted"></i>
+          </span>
+          <input type="text" 
+                 class="form-control border-start-0 ps-0" 
+                 id="categorySearchInput" 
+                 placeholder="搜尋關鍵字..."
+                 autocomplete="off"
+                 inputmode="search">
+        </div>
+      </div>
+      <div class="col-12 col-lg-4">
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary btn-lg flex-fill md3-label-large" id="sortBtn" onclick="toggleSort()">
+            <i class="bi bi-sort-numeric-down me-1"></i>
+            <span id="sortLabel" class="d-none d-md-inline">位置</span>
+          </button>
+          <button class="btn btn-outline-secondary btn-lg flex-fill md3-label-large" id="showAliasBtn" onclick="toggleAliases()">
+            <i class="bi bi-eye me-1"></i>
+            <span id="aliasLabel">別名</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+  <div id="keywordsGrid" class="row g-2 g-md-3 g-lg-4">
+    {% for keyword in keywords %}
+    <div class="col-6 col-md-6 col-lg-4 keyword-card-wrapper" 
+         data-keyword-title="{{ keyword.title|lower }}"
+         data-description="{{ keyword.description_markdown|striptags|lower }}"
+         data-type="keyword">
+      <div class="card h-100 shadow-sm border-0 hover-lift-sm">
+        <div class="card-body p-2 p-md-3">
+          <div class="d-flex align-items-start mb-2 mb-md-3">
+            <div class="keyword-number me-2 me-md-3 flex-shrink-0">
+              <span class="badge bg-primary-subtle text-primary rounded-circle p-1 p-md-2 small" style="width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;">
+                {{ loop.index }}
+              </span>
+            </div>
+            <div class="flex-grow-1 min-w-0">
+              <h5 class="card-title mb-1 mb-md-2 h6 h5-md">
+                <a href="{{ url_for('main.keyword_detail', category_slug=category.slug, slug=keyword.slug) }}" 
+                   class="text-decoration-none text-dark fw-bold stretched-link d-block text-truncate"
+                   title="{{ keyword.title }}">
+                  {{ keyword.title }}
+                </a>
+              </h5>
+              {% if keyword.aliases %}
+              <div class="keyword-aliases-preview">
+                <small class="text-muted small d-none d-md-block">
+                  <i class="bi bi-tags me-1"></i>
+                  {% for alias in keyword.aliases[:2] %}
+                    {{ alias.title }}{% if not loop.last %}, {% endif %}
+                  {% endfor %}
+                  {% if keyword.aliases|length > 2 %}
+                    <span class="text-primary">+{{ keyword.aliases|length - 2 }}</span>
+                  {% endif %}
+                </small>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          <p class="card-text text-muted mb-0 d-none d-md-block" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 0.875rem;">
+            {{ keyword.description_markdown|markdown|striptags|truncate(100, True, '...') }}
+          </p>
+        </div>
+        <div class="card-footer bg-transparent border-0 pt-0 px-2 px-md-3 d-none d-md-block">
+          <small class="text-muted" style="font-size: 0.75rem;">
+            <i class="bi bi-clock me-1"></i>
+            更新於 {{ keyword.updated_at.strftime('%Y-%m-%d') }}
+          </small>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+    
+    {% for alias in aliases %}
+    <div class="col-6 col-md-6 col-lg-4 keyword-card-wrapper alias-card" 
+         data-keyword-title="{{ alias.title|lower }}"
+         data-description="{{ alias.keyword.description_markdown|striptags|lower }}"
+         data-main-keyword="{{ alias.keyword.title|lower }}"
+         data-type="alias"
+         style="display: none;">
+      <div class="card h-100 shadow-sm border-0 hover-lift-sm border-secondary border-opacity-25">
+        <div class="card-body">
+          <div class="d-flex align-items-start mb-3">
+            <div class="alias-icon me-3">
+              <span class="badge bg-secondary-subtle text-secondary rounded-circle p-2" style="font-size: 0.875rem; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center;">
+                <i class="bi bi-arrow-return-right"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1">
+              <h5 class="card-title mb-2">
+                <a href="{{ url_for('main.keyword_detail', category_slug=category.slug, slug=alias.slug) }}" 
+                   class="text-decoration-none text-dark fw-bold stretched-link">
+                  {{ alias.title }}
+                </a>
+              </h5>
+              <div class="alias-reference">
+                <small class="text-muted">
+                  <i class="bi bi-link-45deg me-1"></i>
+                  連結至：{{ alias.keyword.title }}
+                </small>
+              </div>
+            </div>
+          </div>
+          <p class="card-text text-muted small mb-0" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+            {{ alias.keyword.description_markdown|markdown|striptags|truncate(100, True, '...') }}
+          </p>
+        </div>
+        <div class="card-footer bg-transparent border-0 pt-0">
+          <small class="text-muted">
+            <i class="bi bi-clock me-1"></i>
+            更新於 {{ alias.updated_at.strftime('%Y-%m-%d') }}
+          </small>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  
+  <div id="noResults" class="text-center py-5" style="display: none;">
+    <i class="bi bi-search fs-1 text-muted opacity-50 d-block mb-3"></i>
+    <h4 class="text-muted">找不到相關關鍵字</h4>
+    <p class="text-muted">請嘗試其他搜尋詞彙</p>
+  </div>
+
+  
+  {% if all_categories|length > 1 %}
+  <div class="other-categories-section mt-4 mt-md-5 pt-4 pt-md-5 border-top">
+    <h3 class="h5 h4-md fw-bold mb-3 mb-md-4">
+      <i class="bi bi-grid-3x3-gap me-2"></i>
+      探索其他分類
+    </h3>
+    <div class="row g-2 g-md-3">
+      {% for cat in all_categories %}
+        {% if cat.id != category.id %}
+        <div class="col-6 col-md-6 col-lg-3">
+          <a href="{{ url_for('main.category_detail', slug=cat.slug) }}" 
+             class="card h-100 shadow-sm border-0 hover-lift-sm text-decoration-none">
+            <div class="card-body text-center p-2 p-md-3" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100px;">
+              <i class="bi {{ cat.icon }} text-primary mb-2" style="font-size: 1.75rem;"></i>
+              <h6 class="card-title mb-1 fw-bold text-dark small">{{ cat.name }}</h6>
+              <small class="text-muted" style="font-size: 0.75rem;">
+                {{ category_counts.get(cat.id, 0) }} 個
+              </small>
+            </div>
+          </a>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+let showAliases = false;
+let currentSort = 'position'; // 'position' or 'alpha'
+
+// Search functionality
+document.getElementById('categorySearchInput').addEventListener('input', function(e) {
+  const searchTerm = e.target.value.toLowerCase().trim();
+  filterKeywords(searchTerm);
+});
+
+function filterKeywords(searchTerm) {
+  const cards = document.querySelectorAll('.keyword-card-wrapper');
+  const noResults = document.getElementById('noResults');
+  let visibleCount = 0;
+  let hasSearchTerm = searchTerm.length > 0;
+
+  cards.forEach(card => {
+    const title = card.dataset.keywordTitle;
+    const description = card.dataset.description || '';
+    const mainKeyword = card.dataset.mainKeyword || '';
+    const isAlias = card.dataset.type === 'alias';
+    
+    // Check if card matches search (now includes description)
+    const matchesSearch = !searchTerm || 
+                          title.includes(searchTerm) || 
+                          description.includes(searchTerm) ||
+                          mainKeyword.includes(searchTerm);
+    
+    // Auto-show aliases when searching
+    const shouldShowAlias = isAlias && (showAliases || hasSearchTerm);
+    const shouldShow = matchesSearch && (!isAlias || shouldShowAlias);
+    
+    if (shouldShow) {
+      card.classList.remove('filtered-out');
+      card.style.display = '';
+      visibleCount++;
+    } else {
+      card.classList.add('filtered-out');
+      setTimeout(() => {
+        if (card.classList.contains('filtered-out')) {
+          card.style.display = 'none';
+        }
+      }, 300);
+    }
+  });
+
+  // Show/hide no results message
+  noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+}
+
+// Toggle aliases visibility
+function toggleAliases() {
+  showAliases = !showAliases;
+  const btn = document.getElementById('showAliasBtn');
+  const label = document.getElementById('aliasLabel');
+  const icon = btn.querySelector('i');
+  
+  if (showAliases) {
+    label.innerHTML = '別名';
+    icon.className = 'bi bi-eye-slash me-1';
+    btn.classList.remove('btn-outline-secondary');
+    btn.classList.add('btn-secondary');
+  } else {
+    label.innerHTML = '別名';
+    icon.className = 'bi bi-eye me-1';
+    btn.classList.remove('btn-secondary');
+    btn.classList.add('btn-outline-secondary');
+  }
+  
+  // Re-filter with current search term
+  const searchTerm = document.getElementById('categorySearchInput').value;
+  filterKeywords(searchTerm);
+}
+
+// Toggle sort order
+function toggleSort() {
+  const grid = document.getElementById('keywordsGrid');
+  const cards = Array.from(document.querySelectorAll('.keyword-card-wrapper'));
+  const sortLabel = document.getElementById('sortLabel');
+  const sortBtn = document.getElementById('sortBtn');
+  const icon = sortBtn.querySelector('i');
+  
+  if (currentSort === 'position') {
+    // Sort alphabetically
+    currentSort = 'alpha';
+    sortLabel.innerHTML = '<span class="d-none d-md-inline">字母</span>';
+    icon.className = 'bi bi-sort-alpha-down me-1';
+    
+    cards.sort((a, b) => {
+      const titleA = a.dataset.keywordTitle;
+      const titleB = b.dataset.keywordTitle;
+      return titleA.localeCompare(titleB, 'zh-Hant');
+    });
+  } else {
+    // Sort by position (original order)
+    currentSort = 'position';
+    sortLabel.innerHTML = '<span class="d-none d-md-inline">位置</span>';
+    icon.className = 'bi bi-sort-numeric-down me-1';
+    
+    cards.sort((a, b) => {
+      // Keywords before aliases
+      const typeA = a.dataset.type;
+      const typeB = b.dataset.type;
+      if (typeA !== typeB) {
+        return typeA === 'keyword' ? -1 : 1;
+      }
+      // Keep original DOM order within same type
+      return 0;
+    });
+  }
+  
+  // Re-append cards in new order
+  cards.forEach(card => grid.appendChild(card));
+  
+  // Add haptic feedback for mobile
+  if ('vibrate' in navigator) {
+    navigator.vibrate(10);
+  }
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+  // Don't auto-focus on mobile to prevent keyboard popup
+  const isMobile = window.innerWidth < 768;
+  if (!isMobile) {
+    document.getElementById('categorySearchInput').focus();
+  }
+  
+  // Add touch feedback for buttons
+  const buttons = document.querySelectorAll('.btn');
+  buttons.forEach(btn => {
+    btn.addEventListener('touchstart', function() {
+      this.style.transform = 'scale(0.95)';
+    }, { passive: true });
+    
+    btn.addEventListener('touchend', function() {
+      this.style.transform = 'scale(1)';
+    }, { passive: true });
+  });
+});
+</script>
+{% endblock %}

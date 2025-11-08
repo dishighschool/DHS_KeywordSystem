@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>編輯關鍵字 - {{ keyword.title }}</title>
+  
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/keyword-editor.css') }}">
+</head>
+<body>
+<div class="keyword-editor-container">
+  
+  <div class="editor-topbar">
+    <div class="topbar-left">
+      <a href="{{ url_for('admin.content_manager') }}" class="btn-back">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <div class="editor-title-info">
+        <h1 class="editor-title">
+          {% if is_creating %}
+            新增關鍵字
+          {% else %}
+            {{ keyword.title }}
+          {% endif %}
+        </h1>
+        {% if not is_creating %}
+        <div class="editor-meta">
+          <span class="meta-item">
+            <i class="bi bi-folder"></i>
+            {{ keyword.category.name if keyword.category else '未分類' }}
+          </span>
+          <span class="meta-item">
+            <i class="bi bi-eye"></i>
+            {{ keyword.view_count or 0 }} 次瀏覽
+          </span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="topbar-right">
+      {% if not is_creating %}
+      <button type="button" class="btn btn-outline-secondary" onclick="window.location.href='{{ url_for('main.keyword_detail', category_slug=keyword.category.slug, slug=keyword.slug) }}'">
+        <i class="bi bi-box-arrow-up-right me-1"></i>預覽
+      </button>
+      {% endif %}
+      <button type="button" class="btn btn-primary" onclick="saveKeyword()">
+        <i class="bi bi-check-lg me-1"></i>{{ '建立' if is_creating else '儲存' }}
+      </button>
+    </div>
+  </div>
+
+  
+  <div class="editor-main">
+    
+    <div class="editor-sidebar">
+      <nav class="editor-nav">
+        <a href="#section-basic" class="editor-nav-item active" data-section="basic">
+          <i class="bi bi-file-text"></i>
+          <span>基本資訊</span>
+        </a>
+        <a href="#section-content" class="editor-nav-item" data-section="content">
+          <i class="bi bi-card-text"></i>
+          <span>內容描述</span>
+        </a>
+        <a href="#section-videos" class="editor-nav-item" data-section="videos">
+          <i class="bi bi-play-circle"></i>
+          <span>影片資源</span>
+          <span class="nav-badge">{{ keyword.videos|length }}</span>
+        </a>
+        <a href="#section-aliases" class="editor-nav-item" data-section="aliases">
+          <i class="bi bi-tags"></i>
+          <span>別名標籤</span>
+          <span class="nav-badge">{{ keyword.aliases|length }}</span>
+        </a>
+        <a href="#section-seo" class="editor-nav-item" data-section="seo">
+          <i class="bi bi-search"></i>
+          <span>SEO 優化</span>
+        </a>
+        <a href="#section-visibility" class="editor-nav-item" data-section="visibility">
+          <i class="bi bi-eye"></i>
+          <span>顯示設定</span>
+        </a>
+      </nav>
+    </div>
+
+    
+    <div class="editor-content">
+      {# 如果是從目標清單來的,顯示提示 #}
+      {% if goal_item %}
+      <div class="alert alert-info alert-dismissible fade show m-3" role="alert">
+        <i class="bi bi-list-check me-2"></i>
+        <strong>從目標清單創建:</strong> 此關鍵字來自目標清單「{{ goal_item.goal_list.name }}」。
+        完成創建後將自動標記為已完成並返回清單頁面。
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endif %}
+      
+      <form id="keywordForm" method="POST" action="{% if is_creating %}{{ url_for('admin.store_keyword') }}{% else %}{{ url_for('admin.save_keyword_editor', keyword_id=keyword.id) }}{% endif %}">
+        {{ form.hidden_tag() }}
+        
+        {# 如果是從目標清單來的,保存目標項目 ID #}
+        {% if goal_item %}
+        <input type="hidden" name="from_goal_item" value="{{ goal_item.id }}">
+        {% endif %}
+        
+        
+        <div id="section-basic" class="editor-section active">
+          <div class="section-header">
+            <h2 class="section-title">基本資訊</h2>
+            <p class="section-description">設定關鍵字的標題和分類</p>
+          </div>
+          <div class="section-body">
+            <div class="form-group">
+              <label for="title" class="form-label">
+                標題 <span class="text-danger">*</span>
+              </label>
+              {{ form.title(class="form-control form-control-lg", id="title", placeholder="輸入關鍵字標題") }}
+              {% if form.title.errors %}
+                <div class="invalid-feedback d-block">{{ form.title.errors[0] }}</div>
+              {% endif %}
+            </div>
+
+            <div class="form-group">
+              <label for="category_id" class="form-label">
+                分類 <span class="text-danger">*</span>
+              </label>
+              {{ form.category_id(class="form-select", id="category_id") }}
+              {% if form.category_id.errors %}
+                <div class="invalid-feedback d-block">{{ form.category_id.errors[0] }}</div>
+              {% endif %}
+            </div>
+
+          </div>
+        </div>
+
+        
+        <div id="section-content" class="editor-section">
+          <div class="section-header">
+            <h2 class="section-title">內容描述</h2>
+            <p class="section-description">使用 Markdown 格式撰寫詳細說明</p>
+            <div class="section-header-actions">
+              <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="markdown-mode" id="mode-edit" checked autocomplete="off">
+                <label class="btn btn-outline-primary" for="mode-edit">
+                  <i class="bi bi-pencil-square"></i> 編輯
+                </label>
+                
+                <input type="radio" class="btn-check" name="markdown-mode" id="mode-split" autocomplete="off">
+                <label class="btn btn-outline-primary" for="mode-split">
+                  <i class="bi bi-layout-split"></i> 分割
+                </label>
+                
+                <input type="radio" class="btn-check" name="markdown-mode" id="mode-preview" autocomplete="off">
+                <label class="btn btn-outline-primary" for="mode-preview">
+                  <i class="bi bi-eye"></i> 預覽
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="section-body">
+            
+            <div class="markdown-toolbar mb-3">
+              <div class="toolbar-group">
+                <button type="button" class="btn btn-sm btn-light" onclick="insertMarkdown('# ', '')" title="標題 1">
+                  <i class="bi bi-type-h1"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-light" onclick="insertMarkdown('## ', '')" title="標題 2">
+                  <i class="bi bi-type-h2"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-light" onclick="insertMarkdown('### ', '')" title="標題 3">
+                  <i class="bi bi-type-h3"></i>
+                </button>
+              </div>
+              <div class="toolbar-divider"></div>
+              <div class="toolbar-group">
+                <button type="button" class="btn btn-sm btn-light" onclick="insertMarkdown('**', '**')" title="粗體">
+                  <i class="bi bi-type-bold"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-light" onclick="insertMarkdown('*', '*')" title="斜體">
+                  <i class="bi bi-type-italic"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-light" onclick="insertMarkdown('~~', '~~')" title="刪除線">
+                  <i class="bi bi-type-strikethrough"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-light" onclick="insertMarkdown('`', '`')" title="行內程式碼">
+                  <i class="bi bi-code"></i>
+                </button>
+              </div>
+              <div class="toolbar-divider"></div>
+              <div class="toolbar-group">
+                <button type="button" class="btn btn-sm btn-light" onclick="insertMarkdown('[', '](url)')" title="連結">
+                  <i class="bi bi-link-45deg"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-light" onclick="insertMarkdown('![', '](url)')" title="圖片">
+                  <i class="bi bi-image"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-light" onclick="insertMarkdown('> ', '')" title="引用">
+                  <i class="bi bi-quote"></i>
+                </button>
+              </div>
+              <div class="toolbar-divider"></div>
+              <div class="toolbar-group">
+                <button type="button" class="btn btn-sm btn-light" onclick="insertMarkdown('- ', '')" title="無序列表">
+                  <i class="bi bi-list-ul"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-light" onclick="insertMarkdown('1. ', '')" title="有序列表">
+                  <i class="bi bi-list-ol"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-light" onclick="insertMarkdown('- [ ] ', '')" title="待辦事項">
+                  <i class="bi bi-check-square"></i>
+                </button>
+              </div>
+              <div class="toolbar-divider"></div>
+              <div class="toolbar-group">
+                <button type="button" class="btn btn-sm btn-light" onclick="insertMarkdown('```\n', '\n```')" title="程式碼區塊">
+                  <i class="bi bi-code-square"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-light" onclick="insertMarkdown('---\n', '')" title="分隔線">
+                  <i class="bi bi-dash-lg"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-light" onclick="insertTable()" title="表格">
+                  <i class="bi bi-table"></i>
+                </button>
+              </div>
+            </div>
+
+            
+            <div class="markdown-editor-container" id="markdown-container">
+              <div class="markdown-editor-pane">
+                {{ form.description_markdown(class="form-control markdown-textarea", id="description_markdown", placeholder="# 開始編寫內容\n\n支援完整 Markdown 語法...") }}
+              </div>
+              <div class="markdown-preview-pane" id="markdown-preview">
+                <div class="preview-content"></div>
+              </div>
+            </div>
+
+            
+            <div class="markdown-stats mt-2">
+              <small class="text-muted">
+                <span id="char-count">0</span> 字元 · 
+                <span id="word-count">0</span> 字 · 
+                <span id="line-count">0</span> 行
+              </small>
+            </div>
+          </div>
+        </div>
+
+        
+        <div id="section-videos" class="editor-section">
+          <div class="section-header">
+            <h2 class="section-title">影片資源</h2>
+            <p class="section-description">新增相關的 YouTube 教學影片</p>
+          </div>
+          <div class="section-body">
+            <div id="videos-container">
+              {% for video_form in form.videos %}
+              <div class="video-entry card mb-3">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h5 class="card-title mb-0">影片 #{{ loop.index }}</h5>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeVideoEntry(this)">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <label class="form-label">YouTube 網址</label>
+                      {{ video_form.url(class="form-control", placeholder="https://www.youtube.com/watch?v=...") }}
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">影片標題</label>
+                      {{ video_form.title(class="form-control", placeholder="影片標題") }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            <button type="button" class="btn btn-outline-primary w-100" onclick="addVideoEntry()">
+              <i class="bi bi-plus-circle me-2"></i>新增影片
+            </button>
+          </div>
+        </div>
+
+        
+        <div id="section-aliases" class="editor-section">
+          <div class="section-header">
+            <h2 class="section-title">別名標籤</h2>
+            <p class="section-description">新增同義詞或相關術語以提升搜尋效果</p>
+          </div>
+          <div class="section-body">
+            <div id="aliases-container">
+              {% for alias_form in form.aliases %}
+              <div class="alias-entry mb-2">
+                {{ alias_form.alias_id() }}
+                <div class="input-group">
+                  {{ alias_form.title(class="form-control", placeholder="輸入別名") }}
+                  <button type="button" class="btn btn-outline-danger" onclick="removeAliasEntry(this)">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            <button type="button" class="btn btn-outline-primary w-100" onclick="addAliasEntry()">
+              <i class="bi bi-plus-circle me-2"></i>新增別名
+            </button>
+          </div>
+        </div>
+
+        
+        <div id="section-seo" class="editor-section">
+          <div class="section-header">
+            <h2 class="section-title">SEO 優化</h2>
+            <p class="section-description">搜尋引擎優化內容設定</p>
+          </div>
+          <div class="section-body">
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle me-2"></i>
+              SEO 內容將顯示在頁面底部,幫助搜尋引擎理解關鍵字內容
+            </div>
+            
+            <div class="form-check form-switch mb-3">
+              {{ form.seo_auto_generate(class="form-check-input", id="seo_auto_generate") }}
+              <label class="form-check-label" for="seo_auto_generate">
+                自動生成 SEO 內容
+              </label>
+            </div>
+
+            <div id="manual-seo-content" {% if keyword.seo_auto_generate %}style="display:none"{% endif %}>
+              <div class="form-group">
+                <label for="seo_content" class="form-label">自訂 SEO 內容 (HTML)</label>
+                {{ form.seo_content(class="form-control", id="seo_content", rows="8") }}
+                <small class="form-text text-muted">支援 HTML 標籤</small>
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-outline-success mt-3" onclick="regenerateSEO()">
+              <i class="bi bi-arrow-clockwise me-2"></i>重新生成 SEO 內容
+            </button>
+          </div>
+        </div>
+
+        
+        <div id="section-visibility" class="editor-section">
+          <div class="section-header">
+            <h2 class="section-title">顯示設定</h2>
+            <p class="section-description">控制關鍵字在網站上的顯示狀態</p>
+          </div>
+          <div class="section-body">
+            <div class="form-check form-switch">
+              {{ form.is_public(class="form-check-input", id="is_public") }}
+              <label class="form-check-label" for="is_public">
+                <strong>公開顯示</strong>
+              </label>
+            </div>
+            <p class="text-muted mt-2 mb-0">關閉後,此關鍵字將不會在前台顯示</p>
+
+            {% if not is_creating %}
+            <hr class="my-4">
+
+            <div class="metadata-info">
+              <h5 class="mb-3">內容資訊</h5>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <div class="info-item">
+                    <i class="bi bi-person text-muted me-2"></i>
+                    <span class="text-muted">建立者:</span>
+                    <strong class="ms-2">{{ keyword.author.username }}</strong>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="info-item">
+                    <i class="bi bi-calendar text-muted me-2"></i>
+                    <span class="text-muted">建立時間:</span>
+                    <strong class="ms-2">{{ keyword.created_at.strftime('%Y-%m-%d') }}</strong>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="info-item">
+                    <i class="bi bi-clock text-muted me-2"></i>
+                    <span class="text-muted">最後更新:</span>
+                    <strong class="ms-2">{{ keyword.updated_at.strftime('%Y-%m-%d %H:%M') if keyword.updated_at else '未更新' }}</strong>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="info-item">
+                    <i class="bi bi-eye text-muted me-2"></i>
+                    <span class="text-muted">瀏覽次數:</span>
+                    <strong class="ms-2">{{ keyword.view_count or 0 }}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+
+<script src="{{ url_for('static', filename='js/keyword-editor.js') }}"></script>
+<script>
+  // 初始化編輯器
+  document.addEventListener('DOMContentLoaded', function() {
+    initKeywordEditor();
+    
+    // SEO 自動生成切換
+    const seoAutoGenerate = document.getElementById('seo_auto_generate');
+    if (seoAutoGenerate) {
+      seoAutoGenerate.addEventListener('change', function() {
+        const manualContent = document.getElementById('manual-seo-content');
+        if (manualContent) {
+          manualContent.style.display = this.checked ? 'none' : 'block';
+        }
+      });
+    }
+  });
+</script>
+</body>
+</html>

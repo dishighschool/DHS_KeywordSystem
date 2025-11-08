@@ -1,0 +1,607 @@
+{% extends "admin/base.html" %}
+{% block title %}網站設定{% endblock %}
+{% block header_title %}網站設定{% endblock %}
+{% block page_icon_class %}bi bi-gear{% endblock %}
+{% block page_title %}網站設定{% endblock %}
+{% block page_subtitle %}統一管理網站品牌、導航和頁尾設定{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/icon-picker.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<ul class="nav nav-tabs nav-fill mb-4" id="settingsTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button">
+      <i class="bi bi-globe me-2"></i>基本設定
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="header-tab" data-bs-toggle="tab" data-bs-target="#header" type="button">
+      <i class="bi bi-layout-text-window-reverse me-2"></i>頁首設定
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="footer-tab" data-bs-toggle="tab" data-bs-target="#footer" type="button">
+      <i class="bi bi-layout-text-window me-2"></i>頁尾設定
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content" id="settingsTabContent">
+  
+  
+  <div class="tab-pane fade show active" id="basic" role="tabpanel">
+    <div class="admin-card">
+      <div class="admin-card-header d-flex justify-content-between align-items-start">
+        <div>
+          <h2 class="admin-card-title">
+            <i class="bi bi-globe admin-card-icon"></i>
+            網站基本資訊
+          </h2>
+          <p class="text-muted mb-0">設定網站標題、副標題和其他基本資訊</p>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-x-lg me-1"></i>取消
+          </a>
+          <button type="submit" form="basicSettingsForm" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>儲存設定
+          </button>
+        </div>
+      </div>
+      <div class="admin-card-body">
+        <form method="post" action="{{ url_for('admin.update_site_settings') }}" enctype="multipart/form-data" id="basicSettingsForm">
+          {{ branding_form.hidden_tag() }}
+          
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="mb-3">
+                {{ branding_form.site_title.label(class_='form-label fw-semibold') }}
+                {{ branding_form.site_title(class_='form-control', placeholder='學習關鍵字') }}
+                <div class="form-text">
+                  <i class="bi bi-info-circle"></i>
+                  顯示在導航列的網站主標題
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="mb-3">
+                {{ branding_form.site_subtitle.label(class_='form-label fw-semibold') }}
+                {{ branding_form.site_subtitle(class_='form-control', placeholder='迪斯中學學習平台') }}
+                <div class="form-text">
+                  <i class="bi bi-info-circle"></i>
+                  副標題或網站描述（可選）
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="mb-3">
+                {{ branding_form.site_title_suffix.label(class_='form-label fw-semibold') }}
+                {{ branding_form.site_title_suffix(class_='form-control', placeholder='迪斯中學學習平台') }}
+                <div class="form-text">
+                  <i class="bi bi-info-circle"></i>
+                  瀏覽器標籤頁標題後綴
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="mb-3">
+                {{ branding_form.footer_title.label(class_='form-label fw-semibold') }}
+                {{ branding_form.footer_title(class_='form-control', placeholder='學習關鍵字平台') }}
+                <div class="form-text">
+                  <i class="bi bi-info-circle"></i>
+                  頁尾標題（若不填寫則使用主標題）
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  
+  <div class="tab-pane fade" id="header" role="tabpanel">
+    <div class="admin-card">
+      <div class="admin-card-header d-flex justify-content-between align-items-start">
+        <div>
+          <h2 class="admin-card-title">
+            <i class="bi bi-layout-text-window-reverse admin-card-icon"></i>
+            頁首與導航設定
+          </h2>
+          <p class="text-muted mb-0">管理頁首 Logo 和導航選單連結</p>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-x-lg me-1"></i>取消
+          </a>
+          <button type="submit" form="headerSettingsForm" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>儲存設定
+          </button>
+        </div>
+      </div>
+      <div class="admin-card-body">
+        <form method="post" action="{{ url_for('admin.update_site_settings') }}" enctype="multipart/form-data" id="headerSettingsForm">
+          {{ branding_form.hidden_tag() }}
+          
+          <div class="row g-3">
+            <div class="col-md-6">
+              <h6 class="fw-semibold mb-2">頁首 Logo</h6>
+              
+              {% if current_header_logo %}
+              <div class="alert alert-info mb-3">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div class="flex-grow-1">
+                    <small class="text-muted d-block mb-2">目前使用:</small>
+                    <img src="{{ current_header_logo }}" alt="Header Logo" style="max-height: 50px;" class="img-fluid bg-white p-2 border rounded">
+                  </div>
+                  {% if current_header_logo.startswith('/static/uploads/') %}
+                  <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="deleteLogo('header')">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                  {% endif %}
+                </div>
+              </div>
+              {% endif %}
+              
+              <div class="mb-2">
+                {{ branding_form.header_logo_file.label(class_='form-label') }}
+                {{ branding_form.header_logo_file(class_='form-control', accept='image/*') }}
+              </div>
+              
+              <div class="text-center my-2"><small class="text-muted">或</small></div>
+              
+              <div class="mb-3">
+                {{ branding_form.header_logo_url.label(class_='form-label') }}
+                {{ branding_form.header_logo_url(class_='form-control', placeholder='https://...') }}
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <h6 class="fw-semibold mb-2">導航連結</h6>
+              
+              {% if nav_links %}
+              <div class="list-group list-group-sm" id="navLinksList" style="max-height: 300px; overflow-y: auto;">
+                {% for link in nav_links %}
+                <div class="list-group-item d-flex align-items-center py-2" data-id="{{ link.id }}">
+                  <i class="bi bi-grip-vertical text-muted me-2" style="cursor: grab; font-size: 0.875rem;"></i>
+                  <div class="flex-grow-1" style="font-size: 0.875rem;">
+                    {% if link.icon %}<i class="{{ link.icon }} me-1"></i>{% endif %}
+                    {{ link.label }}
+                  </div>
+                  <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="editNavLink({{ link.id }}, '{{ link.label }}', '{{ link.url }}', '{{ link.icon or '' }}')">
+                      <i class="bi bi-pencil" style="font-size: 0.75rem;"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteNavLink({{ link.id }})">
+                      <i class="bi bi-trash" style="font-size: 0.75rem;"></i>
+                    </button>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+              {% else %}
+              <p class="text-muted text-center py-3 small">尚無導航連結</p>
+              {% endif %}
+              
+              <button type="button" class="btn btn-sm btn-outline-primary mt-2 w-100" data-bs-toggle="modal" data-bs-target="#addNavModal">
+                <i class="bi bi-plus-lg"></i> 新增導航連結
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  
+  <div class="tab-pane fade" id="footer" role="tabpanel">
+    <div class="admin-card">
+      <div class="admin-card-header d-flex justify-content-between align-items-start">
+        <div>
+          <h2 class="admin-card-title">
+            <i class="bi bi-layout-text-window admin-card-icon"></i>
+            頁尾與社交媒體設定
+          </h2>
+          <p class="text-muted mb-0">管理頁尾 Logo、說明文字和社交媒體連結</p>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-x-lg me-1"></i>取消
+          </a>
+          <button type="submit" form="footerSettingsForm" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>儲存設定
+          </button>
+        </div>
+      </div>
+      <div class="admin-card-body">
+        <form method="post" action="{{ url_for('admin.update_site_settings') }}" enctype="multipart/form-data" id="footerSettingsForm">
+          {{ branding_form.hidden_tag() }}
+          
+          <div class="row g-3">
+            <div class="col-md-6">
+              <h6 class="fw-semibold mb-2">頁尾 Logo</h6>
+              
+              {% if current_footer_logo %}
+              <div class="alert alert-info mb-3">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div class="flex-grow-1">
+                    <small class="text-muted d-block mb-2">目前使用:</small>
+                    <img src="{{ current_footer_logo }}" alt="Footer Logo" style="max-height: 50px;" class="img-fluid bg-white p-2 border rounded">
+                  </div>
+                  {% if current_footer_logo.startswith('/static/uploads/') %}
+                  <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="deleteLogo('footer')">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                  {% endif %}
+                </div>
+              </div>
+              {% endif %}
+              
+              <div class="mb-2">
+                {{ branding_form.footer_logo_file.label(class_='form-label') }}
+                {{ branding_form.footer_logo_file(class_='form-control', accept='image/*') }}
+              </div>
+              
+              <div class="text-center my-2"><small class="text-muted">或</small></div>
+              
+              <div class="mb-3">
+                {{ branding_form.footer_logo_url.label(class_='form-label') }}
+                {{ branding_form.footer_logo_url(class_='form-control', placeholder='https://...') }}
+              </div>
+              
+              <div class="mb-3">
+                {{ branding_form.footer_description.label(class_='form-label fw-semibold') }}
+                {{ branding_form.footer_description(class_='form-control', rows='3', placeholder='本平台致力於提供優質的學習資源，協助學生掌握核心知識。') }}
+                <div class="form-text">頁尾說明文字，顯示在 Logo 下方</div>
+              </div>
+              
+              <div class="mb-3">
+                {{ branding_form.footer_copy.label(class_='form-label fw-semibold') }}
+                {{ branding_form.footer_copy(class_='form-control', placeholder='© 2025 學習關鍵字平台 版權所有') }}
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <h6 class="fw-semibold mb-2">社交媒體連結</h6>
+              
+              {% if footer_links %}
+              <div class="list-group list-group-sm" id="footerLinksList" style="max-height: 300px; overflow-y: auto;">
+                {% for link in footer_links %}
+                <div class="list-group-item d-flex align-items-center py-2" data-id="{{ link.id }}">
+                  <i class="bi bi-grip-vertical text-muted me-2" style="cursor: grab; font-size: 0.875rem;"></i>
+                  <div class="flex-grow-1" style="font-size: 0.875rem;">
+                    {% if link.icon %}<i class="{{ link.icon }} me-1"></i>{% endif %}
+                    {{ link.label }}
+                  </div>
+                  <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="editFooterLink({{ link.id }}, '{{ link.label }}', '{{ link.url }}', '{{ link.icon or '' }}')">
+                      <i class="bi bi-pencil" style="font-size: 0.75rem;"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteFooterLink({{ link.id }})">
+                      <i class="bi bi-trash" style="font-size: 0.75rem;"></i>
+                    </button>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+              {% else %}
+              <p class="text-muted text-center py-3 small">尚無社交媒體連結</p>
+              {% endif %}
+              
+              <button type="button" class="btn btn-sm btn-outline-primary mt-2 w-100" data-bs-toggle="modal" data-bs-target="#addFooterModal">
+                <i class="bi bi-plus-lg"></i> 新增社交媒體連結
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+</div>
+
+<div class="modal fade" id="addNavModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">新增導航連結</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{{ url_for('admin.add_navigation_link') }}">
+        {{ nav_form.hidden_tag() }}
+        <div class="modal-body">
+          <div class="mb-3">
+            {{ nav_form.label.label(class_='form-label') }}
+            {{ nav_form.label(class_='form-control') }}
+          </div>
+          <div class="mb-3">
+            {{ nav_form.url.label(class_='form-label') }}
+            {{ nav_form.url(class_='form-control') }}
+          </div>
+          <div class="mb-3">
+            {{ nav_form.icon.label(class_='form-label') }}
+            {{ nav_form.icon(class_='form-control icon-picker-input', placeholder='bi-house', id='navIconInput') }}
+            <div class="form-text">使用 Bootstrap Icons，例如: bi-house, bi-info-circle</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+          {{ nav_form.submit(class_='btn btn-primary') }}
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="editNavModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">編輯導航連結</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editNavId">
+        <div class="mb-3">
+          <label class="form-label">標籤</label>
+          <input type="text" class="form-control" id="editNavLabel">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">連結</label>
+          <input type="text" class="form-control" id="editNavUrl">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">圖示</label>
+          <input type="text" class="form-control icon-picker-input" id="editNavIcon" placeholder="bi-house">
+          <div class="form-text">使用 Bootstrap Icons，例如: bi-house, bi-info-circle</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" onclick="saveNavLink()">儲存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="addFooterModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">新增社交媒體連結</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{{ url_for('admin.add_footer_link') }}">
+        {{ footer_form.hidden_tag() }}
+        <div class="modal-body">
+          <div class="mb-3">
+            {{ footer_form.label.label(class_='form-label') }}
+            {{ footer_form.label(class_='form-control') }}
+          </div>
+          <div class="mb-3">
+            {{ footer_form.url.label(class_='form-label') }}
+            {{ footer_form.url(class_='form-control') }}
+          </div>
+          <div class="mb-3">
+            {{ footer_form.icon.label(class_='form-label') }}
+            {{ footer_form.icon(class_='form-control icon-picker-input', placeholder='bi-github', id='footerIconInput') }}
+            <div class="form-text">常用社交圖示: bi-facebook, bi-twitter-x, bi-github, bi-instagram, bi-youtube</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+          {{ footer_form.submit(class_='btn btn-primary') }}
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="editFooterModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">編輯社交媒體連結</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editFooterId">
+        <div class="mb-3">
+          <label class="form-label">標籤</label>
+          <input type="text" class="form-control" id="editFooterLabel">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">連結</label>
+          <input type="text" class="form-control" id="editFooterUrl">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">圖示</label>
+          <input type="text" class="form-control icon-picker-input" id="editFooterIcon" placeholder="bi-github">
+          <div class="form-text">常用社交圖示: bi-facebook, bi-twitter-x, bi-github, bi-instagram, bi-youtube</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" onclick="saveFooterLink()">儲存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="{{ url_for('static', filename='js/icon-picker.js') }}"></script>
+<script>
+// 初始化 Icon Picker
+document.addEventListener('DOMContentLoaded', function() {
+  // 為所有 icon-picker-input 初始化
+  document.querySelectorAll('.icon-picker-input').forEach(input => {
+    window.initIconPicker(input, {
+      placeholder: '搜尋圖示或輸入自訂名稱...',
+      showCustomInput: true
+    });
+  });
+  
+  // 當 Modal 打開時重新初始化 icon picker
+  ['addNavModal', 'editNavModal', 'addFooterModal', 'editFooterModal'].forEach(modalId => {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.addEventListener('shown.bs.modal', function() {
+        const inputs = modal.querySelectorAll('.icon-picker-input');
+        inputs.forEach(input => {
+          if (!input.closest('.icon-picker-container')) {
+            window.initIconPicker(input, {
+              placeholder: '搜尋圖示或輸入自訂名稱...',
+              showCustomInput: true
+            });
+          }
+        });
+      });
+    }
+  });
+});
+
+// Logo 刪除
+function deleteLogo(type) {
+  if (!confirm(`確定要刪除${type === 'header' ? '頁首' : '頁尾'} Logo 嗎？`)) return;
+  
+  fetch('{{ url_for("admin.delete_logo") }}', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: type })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert(data.message);
+      location.reload();
+    } else {
+      alert('刪除失敗: ' + data.message);
+    }
+  });
+}
+
+// 導航連結編輯
+function editNavLink(id, label, url, icon) {
+  document.getElementById('editNavId').value = id;
+  document.getElementById('editNavLabel').value = label;
+  document.getElementById('editNavUrl').value = url;
+  document.getElementById('editNavIcon').value = icon;
+  new bootstrap.Modal(document.getElementById('editNavModal')).show();
+}
+
+function saveNavLink() {
+  const id = document.getElementById('editNavId').value;
+  const data = {
+    label: document.getElementById('editNavLabel').value,
+    url: document.getElementById('editNavUrl').value,
+    icon: document.getElementById('editNavIcon').value
+  };
+  
+  fetch(`{{ url_for('admin.edit_navigation', link_id=0) }}`.replace('/0/', `/${id}/`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      location.reload();
+    } else {
+      alert('儲存失敗: ' + data.message);
+    }
+  });
+}
+
+function deleteNavLink(id) {
+  if (!confirm('確定要刪除此導航連結嗎？')) return;
+  
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = `{{ url_for('admin.delete_navigation', link_id=0) }}`.replace('/0/', `/${id}/`);
+  document.body.appendChild(form);
+  form.submit();
+}
+
+// 底部連結編輯
+function editFooterLink(id, label, url, icon) {
+  document.getElementById('editFooterId').value = id;
+  document.getElementById('editFooterLabel').value = label;
+  document.getElementById('editFooterUrl').value = url;
+  document.getElementById('editFooterIcon').value = icon;
+  new bootstrap.Modal(document.getElementById('editFooterModal')).show();
+}
+
+function saveFooterLink() {
+  const id = document.getElementById('editFooterId').value;
+  const data = {
+    label: document.getElementById('editFooterLabel').value,
+    url: document.getElementById('editFooterUrl').value,
+    icon: document.getElementById('editFooterIcon').value
+  };
+  
+  fetch(`{{ url_for('admin.edit_footer', link_id=0) }}`.replace('/0/', `/${id}/`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      location.reload();
+    } else {
+      alert('儲存失敗: ' + data.message);
+    }
+  });
+}
+
+function deleteFooterLink(id) {
+  if (!confirm('確定要刪除此社交媒體連結嗎？')) return;
+  
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = `{{ url_for('admin.delete_footer', link_id=0) }}`.replace('/0/', `/${id}/`);
+  document.body.appendChild(form);
+  form.submit();
+}
+
+// 初始化拖拽排序
+document.addEventListener('DOMContentLoaded', function() {
+  const navList = document.getElementById('navLinksList');
+  if (navList) {
+    new Sortable(navList, {
+      animation: 150,
+      handle: '.bi-grip-vertical',
+      onEnd: function(evt) {
+        const order = Array.from(navList.children).map(item => item.dataset.id);
+        fetch('{{ url_for("admin.reorder_navigation") }}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order: order })
+        });
+      }
+    });
+  }
+  
+  const footerList = document.getElementById('footerLinksList');
+  if (footerList) {
+    new Sortable(footerList, {
+      animation: 150,
+      handle: '.bi-grip-vertical',
+      onEnd: function(evt) {
+        const order = Array.from(footerList.children).map(item => item.dataset.id);
+        fetch('{{ url_for("admin.reorder_footer") }}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order: order })
+        });
+      }
+    });
+  }
+});</script>
+{% endblock %}

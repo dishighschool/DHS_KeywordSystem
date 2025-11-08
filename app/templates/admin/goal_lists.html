@@ -1,0 +1,123 @@
+{% extends "admin/base.html" %}
+
+{% block title %}關鍵字目標清單{% endblock %}
+
+{% block page_title %}關鍵字目標清單{% endblock %}
+{% block page_subtitle %}協同完成大量關鍵字創建計畫{% endblock %}
+{% block page_icon_class %}bi bi-list-check{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('admin.create_goal_list') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-2"></i>新增目標清單
+    </a>
+</div>
+
+{% if not goal_lists %}
+<div class="admin-card">
+    <div class="admin-card-body text-center py-5">
+        <i class="bi bi-list-check" style="font-size: 4rem; color: #dee2e6;"></i>
+        <h4 class="mt-3 text-muted">尚無目標清單</h4>
+        <p class="text-muted">創建第一個目標清單,開始協同完成關鍵字創建計畫</p>
+        <a href="{{ url_for('admin.create_goal_list') }}" class="btn btn-primary mt-3">
+            <i class="bi bi-plus-lg me-2"></i>創建目標清單
+        </a>
+    </div>
+</div>
+{% else %}
+<div class="row g-4">
+    {% for goal_list in goal_lists %}
+    <div class="col-md-6 col-lg-4">
+        <div class="admin-card h-100">
+            <div class="admin-card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h5 class="mb-0">
+                        <a href="{{ url_for('admin.view_goal_list', list_id=goal_list.id) }}" class="text-decoration-none">
+                            {{ goal_list.name }}
+                        </a>
+                    </h5>
+                    <span class="badge bg-{{ 'success' if goal_list.is_active else 'secondary' }}">
+                        {{ '進行中' if goal_list.is_active else '已停用' }}
+                    </span>
+                </div>
+                
+                {% if goal_list.description %}
+                <p class="text-muted small mb-3">{{ goal_list.description[:100] }}{% if goal_list.description|length > 100 %}...{% endif %}</p>
+                {% endif %}
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-muted">完成進度</small>
+                        <small class="fw-bold">{{ goal_list.completed_items }} / {{ goal_list.total_items }}</small>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ goal_list.completion_rate }}%"
+                             aria-valuenow="{{ goal_list.completion_rate }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100"></div>
+                    </div>
+                    <small class="text-muted">{{ "%.1f"|format(goal_list.completion_rate) }}%</small>
+                </div>
+                
+                <div class="d-flex align-items-center text-muted small mb-3">
+                    <i class="bi bi-folder me-2"></i>
+                    <span>分類: {{ goal_list.category_name }}</span>
+                </div>
+                
+                <div class="d-flex align-items-center text-muted small mb-3">
+                    <i class="bi bi-person me-2"></i>
+                    <span>創建者: {{ goal_list.creator.username }}</span>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('admin.view_goal_list', list_id=goal_list.id) }}" class="btn btn-sm btn-primary flex-fill">
+                        <i class="bi bi-eye me-1"></i>查看詳情
+                    </a>
+                    {% if goal_list.created_by == current_user.id or current_user.is_admin() %}
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteGoalList({{ goal_list.id }}, '{{ goal_list.name }}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<script>
+function deleteGoalList(listId, listName) {
+    if (!confirm(`確定要刪除目標清單「${listName}」嗎?此操作無法復原。`)) {
+        return;
+    }
+    
+    fetch(`/admin/goal-lists/${listId}/delete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => {
+        if (response.redirected) {
+            window.location.href = response.url;
+        } else {
+            return response.json();
+        }
+    })
+    .then(data => {
+        if (data && data.success) {
+            location.reload();
+        } else if (data && data.message) {
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('刪除失敗');
+    });
+}
+</script>
+{% endblock %}

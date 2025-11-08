@@ -1,0 +1,342 @@
+{% extends "admin/base.html" %}
+
+{% block title %}個人資料{% endblock %}
+
+{% block page_title %}個人資料{% endblock %}
+{% block page_subtitle %}管理您的帳號資訊和設定{% endblock %}
+{% block page_icon_class %}bi bi-person-circle{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .profile-avatar-section {
+        text-align: center;
+        padding: 30px 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .profile-avatar-section::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        animation: pulse 4s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+    
+    .profile-avatar {
+        width: 128px;
+        height: 128px;
+        border-radius: 50%;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        position: relative;
+        z-index: 1;
+        transition: transform 0.3s ease;
+    }
+    
+    .profile-avatar:hover {
+        transform: scale(1.05);
+    }
+    
+    .profile-name {
+        color: white;
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin: 15px 0 10px 0;
+        position: relative;
+        z-index: 1;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    .profile-role-badge {
+        display: inline-block;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        position: relative;
+        z-index: 1;
+        backdrop-filter: blur(10px);
+    }
+    
+    .profile-role-badge.admin {
+        background: rgba(220, 53, 69, 0.9);
+        color: white;
+    }
+    
+    .profile-role-badge.user {
+        background: rgba(13, 110, 253, 0.9);
+        color: white;
+    }
+    
+    .info-grid {
+        display: grid;
+        gap: 15px;
+    }
+    
+    .info-item {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .info-item:hover {
+        background: #e9ecef;
+        transform: translateX(5px);
+    }
+    
+    .info-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        margin-right: 15px;
+        flex-shrink: 0;
+    }
+    
+    .info-icon.discord {
+        background: linear-gradient(135deg, #7289da, #5865f2);
+        color: white;
+    }
+    
+    .info-icon.calendar {
+        background: linear-gradient(135deg, #00b894, #00cec9);
+        color: white;
+    }
+    
+    .info-icon.status {
+        background: linear-gradient(135deg, #fdcb6e, #e17055);
+        color: white;
+    }
+    
+    .info-icon.chart {
+        background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+        color: white;
+    }
+    
+    .info-content {
+        flex: 1;
+    }
+    
+    .info-label {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-bottom: 4px;
+    }
+    
+    .info-value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #212529;
+    }
+    
+    .status-active {
+        color: #28a745;
+    }
+    
+    .status-inactive {
+        color: #dc3545;
+    }
+    
+    .refresh-avatar-btn {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .refresh-avatar-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        color: white;
+    }
+    
+    .privacy-alert {
+        background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+        border-left: 4px solid #667eea;
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+    
+    .privacy-alert i {
+        color: #667eea;
+        font-size: 1.5rem;
+        margin-right: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-4">
+        
+        <div class="admin-card">
+            <div class="profile-avatar-section">
+                <img src="{{ current_user.get_avatar_url(128) }}" 
+                     alt="{{ current_user.username }}" 
+                     class="profile-avatar">
+                <h3 class="profile-name">{{ current_user.username }}</h3>
+                <span class="profile-role-badge {{ 'admin' if current_user.is_admin() else 'user' }}">
+                    <i class="bi bi-{{ 'shield-check' if current_user.is_admin() else 'person' }}"></i>
+                    {{ '管理員' if current_user.is_admin() else '團隊成員' }}
+                </span>
+            </div>
+            
+            <div class="admin-card-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-icon discord">
+                            <i class="bi bi-discord"></i>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-label">Discord ID</div>
+                            <div class="info-value">
+                                <code style="font-size: 0.9rem;">{{ current_user.discord_id }}</code>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-icon calendar">
+                            <i class="bi bi-calendar-check"></i>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-label">註冊日期</div>
+                            <div class="info-value">{{ current_user.created_at.strftime('%Y-%m-%d') }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-icon status">
+                            <i class="bi bi-toggle-{{ 'on' if current_user.is_active else 'off' }}"></i>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-label">帳號狀態</div>
+                            <div class="info-value {{ 'status-active' if current_user.is_active else 'status-inactive' }}">
+                                {{ '啟用中' if current_user.is_active else '已停用' }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-icon chart">
+                            <i class="bi bi-bar-chart-fill"></i>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-label">創建的關鍵字</div>
+                            <div class="info-value">{{ current_user.keywords.count() }} 筆</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <button class="refresh-avatar-btn btn" data-bs-toggle="modal" data-bs-target="#refreshAvatarModal">
+                        <i class="bi bi-arrow-clockwise me-2"></i>重新整理頭像
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-8">
+        
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h5 class="admin-card-title">
+                    <i class="admin-card-icon bi bi-pencil-square"></i>
+                    編輯個人資料
+                </h5>
+            </div>
+            <div class="admin-card-body">
+                <form method="POST" action="{{ url_for('admin.edit_profile') }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        {{ form.username.label(class="form-label fw-semibold") }}
+                        {{ form.username(class="form-control form-control-lg" + (" is-invalid" if form.username.errors else "")) }}
+                        {% if form.username.errors %}
+                            {% for error in form.username.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                每次登入時會從 Discord 同步您的名稱,您也可以在這裡自訂顯示名稱。
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-2"></i>取消
+                        </a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        
+        <div class="privacy-alert">
+            <div class="d-flex align-items-start">
+                <i class="bi bi-shield-check"></i>
+                <div>
+                    <h6 class="fw-bold mb-2">關於您的頭像</h6>
+                    <p class="mb-0 text-muted">
+                        您的頭像每次都是即時從 Discord CDN 取得,我們不會將頭像儲存在資料庫中。
+                        如果您在 Discord 更換了頭像,請重新登入或點擊「重新整理頭像」按鈕以查看最新頭像。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="refreshAvatarModal" tabindex="-1" aria-labelledby="refreshAvatarModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="refreshAvatarModalLabel">
+                    <i class="bi bi-arrow-clockwise me-2"></i>重新整理頭像
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>要重新從 Discord 取得最新頭像,請重新登入系統。</p>
+                <p class="text-muted mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    這會讓您登出,並重新導向到 Discord 登入頁面。
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-primary">
+                    <i class="bi bi-box-arrow-right me-2"></i>重新登入
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

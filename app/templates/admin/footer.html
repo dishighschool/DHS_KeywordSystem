@@ -1,0 +1,237 @@
+{% extends "admin/base.html" %}
+{% block title %}底部連結{% endblock %}
+{% block header_title %}底部連結{% endblock %}
+{% block page_icon_class %}bi bi-link-45deg{% endblock %}
+{% block page_title %}底部連結管理{% endblock %}
+{% block page_subtitle %}管理網站底部社交媒體和其他連結{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="admin-card sticky-top" style="top: 90px;">
+      <div class="admin-card-header">
+        <h2 class="admin-card-title">
+          <i class="bi bi-plus-circle admin-card-icon"></i>
+          新增連結
+        </h2>
+      </div>
+      <div class="admin-card-body">
+        <form method="post">
+          {{ form.hidden_tag() }}
+          <div class="mb-3">
+            {{ form.label.label(class_='form-label fw-semibold') }}
+            {{ form.label(class_='form-control', placeholder='例如：Facebook') }}
+            {% for error in form.label.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="mb-3">
+            {{ form.url.label(class_='form-label fw-semibold') }}
+            {{ form.url(class_='form-control', placeholder='例如：https://facebook.com/...') }}
+            {% for error in form.url.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="mb-3">
+            {{ form.icon.label(class_='form-label fw-semibold') }}
+            {{ form.icon(class_='form-control icon-input', placeholder='例如：bi-facebook') }}
+            <div class="form-text">選填:Bootstrap Icons 類別名稱</div>
+          </div>
+          <div class="mb-3">
+            {{ form.position.label(class_='form-label fw-semibold') }}
+            {{ form.position(class_='form-control', type='number', placeholder='0') }}
+            <div class="form-text">數字越小越靠前</div>
+          </div>
+          {{ form.submit(class_='btn btn-primary w-100') }}
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-lg-8">
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <h2 class="admin-card-title">
+          <i class="bi bi-share admin-card-icon"></i>
+          現有連結
+        </h2>
+        <div class="text-muted small">共 {{ links|length }} 個連結</div>
+      </div>
+      <div class="admin-card-body p-0">
+        {% if links %}
+        <div class="list-group list-group-flush" id="footerList">
+          {% for link in links %}
+          <div class="list-group-item draggable-item" data-id="{{ link.id }}">
+            <div class="d-flex align-items-center justify-content-between">
+              <div class="d-flex align-items-center flex-grow-1">
+                <div class="drag-handle me-3 text-muted" style="cursor: move;" title="拖動調整順序">
+                  <i class="bi bi-grip-vertical fs-4"></i>
+                </div>
+                <div class="me-3 text-primary" style="font-size: 1.5rem;">
+                  {% if link.icon %}
+                  <i class="{{ link.icon }}"></i>
+                  {% else %}
+                  <i class="bi bi-link-45deg"></i>
+                  {% endif %}
+                </div>
+                <div>
+                  <div class="fw-semibold">{{ link.label }}</div>
+                  <small class="text-muted text-truncate d-inline-block" style="max-width: 300px;">{{ link.url }}</small>
+                </div>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-secondary-subtle text-secondary">位置: {{ link.position }}</span>
+                <button type="button" class="btn btn-sm btn-outline-primary edit-link-btn" 
+                  data-link-id="{{ link.id }}"
+                  data-label="{{ link.label }}"
+                  data-url="{{ link.url }}"
+                  data-icon="{{ link.icon or '' }}"
+                  data-position="{{ link.position }}"
+                  title="編輯">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <form method="post" action="{{ url_for('admin.delete_footer', link_id=link.id) }}" class="d-inline" onsubmit="return confirm('確定要刪除此連結嗎？');">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+          <i class="bi bi-share text-muted" style="font-size: 3rem; opacity: 0.3;"></i>
+          <p class="text-muted mt-3 mb-0">尚未建立任何底部連結。</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="editLinkModal" tabindex="-1" aria-labelledby="editLinkModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editLinkModalLabel">
+          <i class="bi bi-pencil me-2"></i>編輯底部連結
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editLinkForm">
+          <input type="hidden" id="editLinkId">
+          <div class="mb-3">
+            <label for="editLabel" class="form-label fw-semibold">標籤 <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="editLabel" required>
+          </div>
+          <div class="mb-3">
+            <label for="editUrl" class="form-label fw-semibold">網址 <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="editUrl" required>
+          </div>
+          <div class="mb-3">
+            <label for="editIcon" class="form-label fw-semibold">圖示</label>
+            <input type="text" class="form-control icon-input-modal" id="editIcon" placeholder="例如：bi-facebook">
+            <div class="form-text">選填:Bootstrap Icons 類別名稱</div>
+          </div>
+          <div class="mb-3">
+            <label for="editPosition" class="form-label fw-semibold">排序位置</label>
+            <input type="number" class="form-control" id="editPosition" value="0">
+            <div class="form-text">數字越小越靠前</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" id="saveEditBtn">
+          <i class="bi bi-check-lg me-1"></i>儲存變更
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/icon-picker.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="{{ url_for('static', filename='js/admin-sortable.js') }}"></script>
+<script src="{{ url_for('static', filename='js/icon-picker.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  initSortable('footerList', '/admin/api/reorder-footer');
+  
+  // 初始化圖示選擇器 - 新增表單
+  const iconPicker = initIconPicker('.icon-input', {
+    placeholder: '搜尋圖示名稱...',
+    maxDisplayed: 64
+  });
+  
+  // 編輯按鈕點擊處理
+  const editModal = new bootstrap.Modal(document.getElementById('editLinkModal'));
+  const editButtons = document.querySelectorAll('.edit-link-btn');
+  let modalIconPicker = null;
+  
+  editButtons.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const linkId = this.dataset.linkId;
+      const label = this.dataset.label;
+      const url = this.dataset.url;
+      const icon = this.dataset.icon;
+      const position = this.dataset.position;
+      
+      document.getElementById('editLinkId').value = linkId;
+      document.getElementById('editLabel').value = label;
+      document.getElementById('editUrl').value = url;
+      document.getElementById('editIcon').value = icon;
+      document.getElementById('editPosition').value = position;
+      
+      // 初始化模態框內的圖示選擇器
+      if (!modalIconPicker) {
+        modalIconPicker = initIconPicker('.icon-input-modal', {
+          placeholder: '搜尋圖示名稱...',
+          maxDisplayed: 64
+        });
+      }
+      
+      editModal.show();
+    });
+  });
+  
+  // 儲存編輯
+  document.getElementById('saveEditBtn').addEventListener('click', async function() {
+    const linkId = document.getElementById('editLinkId').value;
+    const label = document.getElementById('editLabel').value.trim();
+    const url = document.getElementById('editUrl').value.trim();
+    const icon = document.getElementById('editIcon').value.trim();
+    const position = parseInt(document.getElementById('editPosition').value) || 0;
+    
+    if (!label || !url) {
+      alert('請填寫標籤和網址');
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/admin/footer/${linkId}/edit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ label, url, icon, position })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        editModal.hide();
+        location.reload(); // 重新載入頁面以顯示更新
+      } else {
+        alert(data.message || '更新失敗');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('更新時發生錯誤');
+    }
+  });
+});
+</script>
+{% endblock %}

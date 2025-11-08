@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}500 - 伺服器錯誤{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      
+      <div class="card border-0 shadow-sm" style="border-radius: var(--md-sys-shape-corner-extra-large, 28px); overflow: hidden;">
+        <div class="card-body p-4 p-md-5">
+          <div class="text-center">
+            
+            <div class="mb-4">
+              <div class="d-inline-flex align-items-center justify-content-center" 
+                   style="width: 120px; height: 120px; border-radius: var(--md-sys-shape-corner-extra-large, 28px); background: var(--md-sys-color-error-container, #FFDAD6);">
+                <i class="bi bi-exclamation-octagon-fill" style="font-size: 4rem; color: var(--md-sys-color-on-error-container, #410E0B);"></i>
+              </div>
+            </div>
+
+            
+            <h1 class="display-4 fw-bold mb-3" style="color: var(--md-sys-color-on-surface, #1C1B1F);">
+              伺服器錯誤
+            </h1>
+            <p class="h5 mb-2" style="color: var(--md-sys-color-error, #BA1A1A); font-weight: 500;">
+              錯誤代碼: 500
+            </p>
+            <p class="lead text-muted mb-4" style="max-width: 600px; margin-left: auto; margin-right: auto;">
+              抱歉,伺服器在處理您的請求時遇到了問題
+            </p>
+
+            
+            {% if error_id %}
+            <div class="mb-5">
+              <div class="d-inline-flex align-items-center gap-2 px-4 py-2" 
+                   style="background: var(--md-sys-color-surface-container, #F3EDF7); border-radius: var(--md-sys-shape-corner-medium, 12px);">
+                <i class="bi bi-hash" style="color: var(--md-sys-color-on-surface-variant, #49454F);"></i>
+                <span style="color: var(--md-sys-color-on-surface-variant, #49454F); font-size: 0.875rem;">
+                  錯誤 ID: <code style="color: var(--md-sys-color-primary, #6750A4); font-weight: 600;">{{ error_id }}</code>
+                </span>
+              </div>
+            </div>
+            {% else %}
+            <p class="text-muted mb-5" style="font-size: 0.875rem;">
+              我們的團隊已收到通知,正在努力修復
+            </p>
+            {% endif %}
+
+            
+            <div class="d-flex flex-wrap gap-3 justify-content-center mb-5">
+              <a href="{{ url_for('main.index') }}" 
+                 class="btn btn-lg px-5"
+                 style="background: var(--md-sys-color-primary, #6750A4); color: var(--md-sys-color-on-primary, #FFFFFF); border: none; border-radius: var(--md-sys-shape-corner-full, 100px); font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.12);">
+                <i class="bi bi-house-door-fill me-2"></i>返回首頁
+              </a>
+              <button onclick="window.location.reload()" 
+                      class="btn btn-lg px-5"
+                      style="background: var(--md-sys-color-surface-container-highest, #E6E1E5); color: var(--md-sys-color-on-surface, #1C1B1F); border: none; border-radius: var(--md-sys-shape-corner-full, 100px); font-weight: 500;">
+                <i class="bi bi-arrow-clockwise me-2"></i>重新載入
+              </button>
+            </div>
+          </div>
+
+          
+          <div class="mt-5 pt-4" style="border-top: 1px solid var(--md-sys-color-outline-variant, #CAC4D0);">
+            <h5 class="text-center mb-4" style="color: var(--md-sys-color-on-surface-variant, #49454F); font-weight: 500;">
+              您可以嘗試
+            </h5>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <div class="card h-100 border-0 hover-lift" 
+                     style="background: var(--md-sys-color-primary-container, #EADDFF); border-radius: var(--md-sys-shape-corner-large, 16px); transition: all 0.2s var(--md-sys-motion-easing-standard);">
+                  <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                      <div class="d-inline-flex align-items-center justify-content-center" 
+                           style="width: 56px; height: 56px; border-radius: var(--md-sys-shape-corner-full, 28px); background: var(--md-sys-color-primary, #6750A4);">
+                        <i class="bi bi-arrow-clockwise" style="font-size: 1.5rem; color: var(--md-sys-color-on-primary, #FFFFFF);"></i>
+                      </div>
+                    </div>
+                    <h6 class="fw-semibold mb-2" style="color: var(--md-sys-color-on-primary-container, #21005D);">
+                      重新載入頁面
+                    </h6>
+                    <p class="mb-0 small" style="color: var(--md-sys-color-on-primary-container, #21005D);">
+                      有時候重新載入就能解決問題
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="card h-100 border-0 hover-lift" 
+                     style="background: var(--md-sys-color-secondary-container, #E8DEF8); border-radius: var(--md-sys-shape-corner-large, 16px); transition: all 0.2s var(--md-sys-motion-easing-standard);">
+                  <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                      <div class="d-inline-flex align-items-center justify-content-center" 
+                           style="width: 56px; height: 56px; border-radius: var(--md-sys-shape-corner-full, 28px); background: var(--md-sys-color-secondary, #625B71);">
+                        <i class="bi bi-clock-history" style="font-size: 1.5rem; color: var(--md-sys-color-on-secondary, #FFFFFF);"></i>
+                      </div>
+                    </div>
+                    <h6 class="fw-semibold mb-2" style="color: var(--md-sys-color-on-secondary-container, #1D192B);">
+                      稍後再試
+                    </h6>
+                    <p class="mb-0 small" style="color: var(--md-sys-color-on-secondary-container, #1D192B);">
+                      等待幾分鐘後再次訪問
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="card h-100 border-0 hover-lift" 
+                     style="background: var(--md-sys-color-tertiary-container, #FFD8E4); border-radius: var(--md-sys-shape-corner-large, 16px); transition: all 0.2s var(--md-sys-motion-easing-standard);">
+                  <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                      <div class="d-inline-flex align-items-center justify-content-center" 
+                           style="width: 56px; height: 56px; border-radius: var(--md-sys-shape-corner-full, 28px); background: var(--md-sys-color-tertiary, #7D5260);">
+                        <i class="bi bi-envelope" style="font-size: 1.5rem; color: var(--md-sys-color-on-tertiary, #FFFFFF);"></i>
+                      </div>
+                    </div>
+                    <h6 class="fw-semibold mb-2" style="color: var(--md-sys-color-on-tertiary-container, #31111D);">
+                      聯繫我們
+                    </h6>
+                    <p class="mb-0 small" style="color: var(--md-sys-color-on-tertiary-container, #31111D);">
+                      如果問題持續,請告訴我們
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
+          <div class="text-center mt-5">
+            <div class="d-inline-flex align-items-center gap-2 px-4 py-3" 
+                 style="background: var(--md-sys-color-surface-container-low, #F7F2FA); border-radius: var(--md-sys-shape-corner-medium, 12px);">
+              <i class="bi bi-headset" style="color: var(--md-sys-color-primary, #6750A4);"></i>
+              <span style="color: var(--md-sys-color-on-surface-variant, #49454F); font-size: 0.875rem;">
+                需要協助？聯繫
+                <a href="mailto:support@example.com" 
+                   style="color: var(--md-sys-color-primary, #6750A4); text-decoration: none; font-weight: 500;">
+                  技術支援團隊
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+}
+</style>
+{% endblock %}

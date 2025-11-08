@@ -1,0 +1,27 @@
+{
+  "name": "迪斯中學學習關鍵字",
+  "short_name": "學習關鍵字",
+  "description": "探索豐富的學習關鍵字資源,提供詳細的知識說明與精選影音教材",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#667eea",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "reference"],
+  "lang": "zh-Hant",
+  "dir": "ltr"
+}

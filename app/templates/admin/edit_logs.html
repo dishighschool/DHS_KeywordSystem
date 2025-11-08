@@ -1,0 +1,421 @@
+{% extends "admin/base.html" %}
+{% block title %}編輯日誌{% endblock %}
+{% block header_title %}編輯日誌{% endblock %}
+{% block page_icon_class %}bi bi-clock-history{% endblock %}
+{% block page_title %}編輯日誌{% endblock %}
+{% block page_subtitle %}查看所有成員的編輯操作記錄{% endblock %}
+
+{% block content %}
+<style>
+  /* 緊湊型卡片 */
+  .compact-stats {
+    padding: 0.75rem;
+  }
+  .compact-stats i {
+    font-size: 1.5rem;
+  }
+  .compact-stats h4 {
+    font-size: 1.25rem;
+    margin: 0.25rem 0;
+  }
+  .compact-stats small {
+    font-size: 0.75rem;
+  }
+  
+  /* 用戶名截斷 */
+  .user-cell {
+    max-width: 120px;
+  }
+  .user-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+    display: inline-block;
+    vertical-align: middle;
+  }
+  .user-avatar {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+  
+  /* 緊湊型表格 */
+  .compact-table {
+    font-size: 0.875rem;
+  }
+  .compact-table th,
+  .compact-table td {
+    padding: 0.5rem;
+    vertical-align: middle;
+  }
+  .compact-table .badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  /* 描述欄位截斷 */
+  .description-cell {
+    max-width: 300px;
+  }
+  .description-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  /* 搜索框樣式 */
+  .search-input-group {
+    position: relative;
+  }
+  .search-input-group .form-control {
+    padding-right: 2.5rem;
+  }
+  .search-clear-btn {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: none;
+    color: #6c757d;
+    cursor: pointer;
+    z-index: 10;
+  }
+  .search-clear-btn:hover {
+    color: #dc3545;
+  }
+</style>
+
+<div class="admin-card mb-3">
+  <div class="admin-card-body">
+    <form method="get" action="{{ url_for('admin.view_edit_logs') }}" class="row g-2" id="filterForm">
+      
+      <div class="col-md-2">
+        <label class="form-label fw-semibold small">操作類型</label>
+        <select name="action" class="form-select form-select-sm">
+          <option value="">全部</option>
+          <option value="create" {% if action_filter == 'create' %}selected{% endif %}>建立</option>
+          <option value="update" {% if action_filter == 'update' %}selected{% endif %}>更新</option>
+          <option value="delete" {% if action_filter == 'delete' %}selected{% endif %}>刪除</option>
+          <option value="publish" {% if action_filter == 'publish' %}selected{% endif %}>公開</option>
+          <option value="unpublish" {% if action_filter == 'unpublish' %}selected{% endif %}>隱藏</option>
+          <option value="move" {% if action_filter == 'move' %}selected{% endif %}>移動</option>
+        </select>
+      </div>
+      
+      <div class="col-md-2">
+        <label class="form-label fw-semibold small">目標類型</label>
+        <select name="target" class="form-select form-select-sm">
+          <option value="">全部</option>
+          <option value="keyword" {% if target_filter == 'keyword' %}selected{% endif %}>關鍵字</option>
+          <option value="category" {% if target_filter == 'category' %}selected{% endif %}>分類</option>
+          <option value="user" {% if target_filter == 'user' %}selected{% endif %}>用戶</option>
+          <option value="announcement" {% if target_filter == 'announcement' %}selected{% endif %}>公告</option>
+        </select>
+      </div>
+      
+      <div class="col-md-2">
+        <label class="form-label fw-semibold small">執行成員</label>
+        <select name="user" class="form-select form-select-sm" id="userSelect">
+          <option value="">全部成員</option>
+          {% for user in users %}
+          <option value="{{ user.id }}" {% if user_filter == user.id %}selected{% endif %} 
+                  data-username="{{ user.username }}"
+                  data-is-admin="{{ user.is_admin() }}">
+            {{ user.username }}{% if user.is_admin() %} 👑{% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="col-md-2">
+        <label class="form-label fw-semibold small">開始日期</label>
+        <input type="date" name="start_date" class="form-control form-control-sm" 
+               value="{{ start_date or '' }}">
+      </div>
+      
+      <div class="col-md-2">
+        <label class="form-label fw-semibold small">結束日期</label>
+        <input type="date" name="end_date" class="form-control form-control-sm" 
+               value="{{ end_date or '' }}">
+      </div>
+      
+      <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary btn-sm w-100">
+          <i class="bi bi-funnel me-1"></i>篩選
+        </button>
+      </div>
+      
+      
+      <div class="col-md-10">
+        <label class="form-label fw-semibold small">搜索描述或目標名稱</label>
+        <div class="search-input-group">
+          <input type="text" name="search" class="form-control form-control-sm" 
+                 placeholder="輸入關鍵字搜索..." 
+                 value="{{ search_query or '' }}"
+                 id="searchInput">
+          {% if search_query %}
+          <button type="button" class="search-clear-btn" id="clearSearch">
+            <i class="bi bi-x-circle-fill"></i>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      
+      <div class="col-md-2 d-flex align-items-end">
+        <a href="{{ url_for('admin.view_edit_logs') }}" class="btn btn-outline-secondary btn-sm w-100">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>重置
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="row mb-3 g-2">
+  <div class="col-6 col-md-3">
+    <div class="admin-card">
+      <div class="admin-card-body text-center compact-stats">
+        <i class="bi bi-list-ul text-primary"></i>
+        <h4 class="mb-0 fw-bold">{{ logs.total }}</h4>
+        <small class="text-muted">總記錄數</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="admin-card">
+      <div class="admin-card-body text-center compact-stats">
+        <i class="bi bi-file-text text-success"></i>
+        <h4 class="mb-0 fw-bold">{{ stats.keyword_count }}</h4>
+        <small class="text-muted">關鍵字操作</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="admin-card">
+      <div class="admin-card-body text-center compact-stats">
+        <i class="bi bi-folder text-info"></i>
+        <h4 class="mb-0 fw-bold">{{ stats.category_count }}</h4>
+        <small class="text-muted">分類操作</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="admin-card">
+      <div class="admin-card-body text-center compact-stats">
+        <i class="bi bi-people text-warning"></i>
+        <h4 class="mb-0 fw-bold">{{ stats.user_count }}</h4>
+        <small class="text-muted">成員操作</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="admin-card">
+  <div class="admin-card-header d-flex justify-content-between align-items-center">
+    <h3 class="admin-card-title mb-0">
+      <i class="bi bi-list admin-card-icon"></i>
+      操作記錄
+      {% if search_query %}
+      <span class="badge bg-info ms-2">搜索: {{ search_query }}</span>
+      {% endif %}
+    </h3>
+    <div class="d-flex gap-2 align-items-center">
+      <small class="text-muted">顯示 {{ logs.items|length }} 筆</small>
+      <span class="badge bg-secondary">第 {{ logs.page }} / {{ logs.pages }} 頁</span>
+    </div>
+  </div>
+  <div class="admin-card-body p-0">
+    {% if logs.items %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 compact-table">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 130px;">時間</th>
+            <th style="width: 110px;">用戶</th>
+            <th style="width: 85px;">操作</th>
+            <th style="width: 95px;">類型</th>
+            <th>描述</th>
+            <th style="width: 110px;">IP</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in logs.items %}
+          <tr>
+            <td>
+              <small class="text-muted">
+                {{ log.created_at.strftime('%m/%d %H:%M:%S') }}
+              </small>
+            </td>
+            <td class="user-cell">
+              <div class="d-flex align-items-center">
+                <img src="{{ log.user.get_avatar_url(40) }}" class="rounded-circle me-1 user-avatar" 
+                     title="{{ log.user.username }}">
+                <div class="overflow-hidden">
+                  <div class="user-name fw-semibold" title="{{ log.user.username }}">
+                    {{ log.user.username }}
+                  </div>
+                  {% if log.user.is_admin() %}
+                  <span class="badge bg-danger" style="font-size: 0.6rem; padding: 0.1rem 0.3rem;">管理員</span>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+            <td>
+              {% if log.action.value == 'create' %}
+              <span class="badge bg-success"><i class="bi bi-plus-circle"></i> 建立</span>
+              {% elif log.action.value == 'update' %}
+              <span class="badge bg-primary"><i class="bi bi-pencil"></i> 更新</span>
+              {% elif log.action.value == 'delete' %}
+              <span class="badge bg-danger"><i class="bi bi-trash"></i> 刪除</span>
+              {% elif log.action.value == 'publish' %}
+              <span class="badge bg-info"><i class="bi bi-eye"></i> 公開</span>
+              {% elif log.action.value == 'unpublish' %}
+              <span class="badge bg-warning text-dark"><i class="bi bi-eye-slash"></i> 隱藏</span>
+              {% elif log.action.value == 'move' %}
+              <span class="badge bg-secondary"><i class="bi bi-arrow-right"></i> 移動</span>
+              {% else %}
+              <span class="badge bg-light text-dark">{{ log.action.value }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <small>
+              {% if log.target_type.value == 'keyword' %}
+              <i class="bi bi-file-text text-primary"></i> 關鍵字
+              {% elif log.target_type.value == 'category' %}
+              <i class="bi bi-folder text-info"></i> 分類
+              {% elif log.target_type.value == 'user' %}
+              <i class="bi bi-person text-warning"></i> 用戶
+              {% elif log.target_type.value == 'announcement' %}
+              <i class="bi bi-megaphone text-danger"></i> 公告
+              {% else %}
+              {{ log.target_type.value }}
+              {% endif %}
+              </small>
+            </td>
+            <td class="description-cell">
+              <div class="description-text" title="{{ log.description }}{% if log.target_name %} - {{ log.target_name }}{% endif %}">
+                {{ log.description }}
+                {% if log.target_name %}
+                <small class="text-muted">- {{ log.target_name }}</small>
+                {% endif %}
+              </div>
+            </td>
+            <td>
+              <small class="text-muted font-monospace" style="font-size: 0.75rem;">
+                {{ log.ip_address or '未知' }}
+              </small>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    
+    
+    {% if logs.pages > 1 %}
+    <div class="p-3 border-top">
+      <nav>
+        <ul class="pagination pagination-sm mb-0 justify-content-center">
+          {% if logs.has_prev %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('admin.view_edit_logs', page=logs.prev_num, action=action_filter, target=target_filter, user=user_filter) }}">上一頁</a>
+          </li>
+          {% endif %}
+          
+          {% for page_num in logs.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page_num %}
+              <li class="page-item {% if page_num == logs.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('admin.view_edit_logs', page=page_num, action=action_filter, target=target_filter, user=user_filter) }}">{{ page_num }}</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+          {% endfor %}
+          
+          {% if logs.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('admin.view_edit_logs', page=logs.next_num, action=action_filter, target=target_filter, user=user_filter) }}">下一頁</a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div class="text-center py-5">
+      <i class="bi bi-inbox fs-1 text-muted"></i>
+      <p class="text-muted mt-3">
+        {% if search_query or action_filter or target_filter or user_filter or start_date or end_date %}
+        找不到符合篩選條件的記錄
+        {% else %}
+        尚無編輯記錄
+        {% endif %}
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // 清除搜索按鈕
+  const clearSearchBtn = document.getElementById('clearSearch');
+  if (clearSearchBtn) {
+    clearSearchBtn.addEventListener('click', function() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('filterForm').submit();
+    });
+  }
+  
+  // 成員選擇框搜索功能
+  const userSelect = document.getElementById('userSelect');
+  if (userSelect && userSelect.options.length > 20) {
+    // 如果用戶超過20個,添加搜索提示
+    userSelect.setAttribute('title', '可以輸入用戶名進行搜索');
+    
+    // 簡單的鍵盤搜索
+    let searchBuffer = '';
+    let searchTimeout;
+    
+    userSelect.addEventListener('keydown', function(e) {
+      if (e.key.length === 1) {
+        searchBuffer += e.key.toLowerCase();
+        
+        // 查找匹配的選項
+        for (let i = 0; i < this.options.length; i++) {
+          const username = this.options[i].getAttribute('data-username');
+          if (username && username.toLowerCase().startsWith(searchBuffer)) {
+            this.selectedIndex = i;
+            break;
+          }
+        }
+        
+        // 清除搜索緩衝
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          searchBuffer = '';
+        }, 1000);
+      }
+    });
+  }
+  
+  // 表格行懸停顯示完整信息
+  const descriptionCells = document.querySelectorAll('.description-text');
+  descriptionCells.forEach(cell => {
+    if (cell.scrollWidth > cell.clientWidth) {
+      cell.style.cursor = 'help';
+    }
+  });
+  
+  // 用戶名懸停提示
+  const userNames = document.querySelectorAll('.user-name');
+  userNames.forEach(name => {
+    if (name.scrollWidth > name.clientWidth) {
+      name.style.cursor = 'help';
+    }
+  });
+});
+</script>
+{% endblock %}
