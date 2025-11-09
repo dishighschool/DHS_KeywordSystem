@@ -11,6 +11,17 @@
   flex-direction: column;
 }
 
+/* 確保搜尋框可以接收輸入 */
+.icon-picker-dropdown-simple input[type="text"] {
+  z-index: 1;
+  position: relative;
+  pointer-events: auto;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+}
+
 .icon-picker-grid-simple {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));

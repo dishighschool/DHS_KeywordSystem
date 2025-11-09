@@ -220,11 +220,14 @@ document.addEventListener('DOMContentLoaded', function() {
   const editModalEl = document.getElementById('editAnnouncementModal');
   if (editModalEl) {
     editModalEl.addEventListener('shown.bs.modal', function() {
-      const editIconInput = document.getElementById('editIcon');
-      if (editIconInput && !editIconInput.dataset.iconPickerInit) {
-        new SimpleIconPicker(editIconInput);
-        editIconInput.dataset.iconPickerInit = 'true';
-      }
+      // 使用 setTimeout 確保 Modal 完全顯示後再初始化
+      setTimeout(() => {
+        const editIconInput = document.getElementById('editIcon');
+        if (editIconInput && !editIconInput.dataset.iconPickerInit && !editIconInput.closest('.icon-picker-wrapper')) {
+          new SimpleIconPicker(editIconInput);
+          editIconInput.dataset.iconPickerInit = 'true';
+        }
+      }, 150);
     });
   }
   
