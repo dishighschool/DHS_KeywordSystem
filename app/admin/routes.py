@@ -930,77 +930,90 @@ def manage_announcements():
 def update_site_settings():
     """更新品牌設定"""
     form = SiteBrandingForm()
+    form_section = request.form.get('form_section', 'basic')
     
     if form.validate_on_submit():
-        # 更新網站標題
-        SiteSetting.set(SiteSettingKey.SITE_TITLE, form.site_title.data or "")
-        SiteSetting.set(SiteSettingKey.SITE_SUBTITLE, form.site_subtitle.data or "")
-        SiteSetting.set(SiteSettingKey.SITE_TITLE_SUFFIX, form.site_title_suffix.data or "")
-        SiteSetting.set(SiteSettingKey.FOOTER_TITLE, form.footer_title.data or "")
-        SiteSetting.set(SiteSettingKey.FOOTER_DESCRIPTION, form.footer_description.data or "")
-        
-        # 處理頁首 Logo
-        header_logo_file = request.files.get('header_logo_file')
-        if header_logo_file and header_logo_file.filename:
-            old_header_file = SiteSetting.get(SiteSettingKey.HEADER_LOGO_FILE)
-            if old_header_file:
-                delete_uploaded_file(old_header_file)
+        # 根據表單區段只更新對應的欄位
+        if form_section == 'basic':
+            # 基本設定分頁
+            SiteSetting.set(SiteSettingKey.SITE_TITLE, form.site_title.data or "")
+            SiteSetting.set(SiteSettingKey.SITE_SUBTITLE, form.site_subtitle.data or "")
+            SiteSetting.set(SiteSettingKey.SITE_TITLE_SUFFIX, form.site_title_suffix.data or "")
+            SiteSetting.set(SiteSettingKey.FOOTER_TITLE, form.footer_title.data or "")
+            flash("已更新基本設定。", "success")
             
-            uploaded_path = save_uploaded_file(header_logo_file, "header_logo")
-            if uploaded_path:
-                SiteSetting.set(SiteSettingKey.HEADER_LOGO_FILE, uploaded_path)
-                SiteSetting.set(SiteSettingKey.HEADER_LOGO_URL, "")
-                flash("頁首 Logo 圖片已上傳。", "success")
-            else:
-                flash("頁首 Logo 上傳失敗，請檢查檔案格式。", "danger")
-        elif form.header_logo_url.data:
-            old_header_file = SiteSetting.get(SiteSettingKey.HEADER_LOGO_FILE)
-            if old_header_file:
-                delete_uploaded_file(old_header_file)
+        elif form_section == 'header':
+            # 頁首設定分頁
+            # 處理頁首 Logo
+            header_logo_file = request.files.get('header_logo_file')
+            if header_logo_file and header_logo_file.filename:
+                old_header_file = SiteSetting.get(SiteSettingKey.HEADER_LOGO_FILE)
+                if old_header_file:
+                    delete_uploaded_file(old_header_file)
+                
+                uploaded_path = save_uploaded_file(header_logo_file, "header_logo")
+                if uploaded_path:
+                    SiteSetting.set(SiteSettingKey.HEADER_LOGO_FILE, uploaded_path)
+                    SiteSetting.set(SiteSettingKey.HEADER_LOGO_URL, "")
+                    flash("頁首 Logo 圖片已上傳。", "success")
+                else:
+                    flash("頁首 Logo 上傳失敗，請檢查檔案格式。", "danger")
+            elif form.header_logo_url.data:
+                old_header_file = SiteSetting.get(SiteSettingKey.HEADER_LOGO_FILE)
+                if old_header_file:
+                    delete_uploaded_file(old_header_file)
+                
+                SiteSetting.set(SiteSettingKey.HEADER_LOGO_URL, form.header_logo_url.data)
+                SiteSetting.set(SiteSettingKey.HEADER_LOGO_FILE, "")
+                flash("已更新頁首 Logo 連結。", "success")
             
-            SiteSetting.set(SiteSettingKey.HEADER_LOGO_URL, form.header_logo_url.data)
-            SiteSetting.set(SiteSettingKey.HEADER_LOGO_FILE, "")
-        
-        # 處理頁尾 Logo
-        footer_logo_file = request.files.get('footer_logo_file')
-        if footer_logo_file and footer_logo_file.filename:
-            old_footer_file = SiteSetting.get(SiteSettingKey.FOOTER_LOGO_FILE)
-            if old_footer_file:
-                delete_uploaded_file(old_footer_file)
+            # 處理 Favicon
+            favicon_file = request.files.get('favicon_file')
+            if favicon_file and favicon_file.filename:
+                old_favicon_file = SiteSetting.get(SiteSettingKey.FAVICON_FILE)
+                if old_favicon_file:
+                    delete_uploaded_file(old_favicon_file)
+                
+                uploaded_path = save_uploaded_file(favicon_file, "favicon")
+                if uploaded_path:
+                    SiteSetting.set(SiteSettingKey.FAVICON_FILE, uploaded_path)
+                    flash("網站圖示 (Favicon) 已上傳。", "success")
+                else:
+                    flash("網站圖示上傳失敗，請檢查檔案格式 (.ico 或 .png)。", "danger")
             
-            uploaded_path = save_uploaded_file(footer_logo_file, "footer_logo")
-            if uploaded_path:
-                SiteSetting.set(SiteSettingKey.FOOTER_LOGO_FILE, uploaded_path)
-                SiteSetting.set(SiteSettingKey.FOOTER_LOGO_URL, "")
-                flash("頁尾 Logo 圖片已上傳。", "success")
-            else:
-                flash("頁尾 Logo 上傳失敗，請檢查檔案格式。", "danger")
-        elif form.footer_logo_url.data:
-            old_footer_file = SiteSetting.get(SiteSettingKey.FOOTER_LOGO_FILE)
-            if old_footer_file:
-                delete_uploaded_file(old_footer_file)
+            if not header_logo_file and not header_logo_file and not favicon_file:
+                flash("已更新頁首設定。", "success")
+                
+        elif form_section == 'footer':
+            # 頁尾設定分頁
+            SiteSetting.set(SiteSettingKey.FOOTER_DESCRIPTION, form.footer_description.data or "")
+            SiteSetting.set(SiteSettingKey.FOOTER_COPY, form.footer_copy.data or "")
             
-            SiteSetting.set(SiteSettingKey.FOOTER_LOGO_URL, form.footer_logo_url.data)
-            SiteSetting.set(SiteSettingKey.FOOTER_LOGO_FILE, "")
-        
-        # 處理 Favicon
-        favicon_file = request.files.get('favicon_file')
-        if favicon_file and favicon_file.filename:
-            old_favicon_file = SiteSetting.get(SiteSettingKey.FAVICON_FILE)
-            if old_favicon_file:
-                delete_uploaded_file(old_favicon_file)
+            # 處理頁尾 Logo
+            footer_logo_file = request.files.get('footer_logo_file')
+            if footer_logo_file and footer_logo_file.filename:
+                old_footer_file = SiteSetting.get(SiteSettingKey.FOOTER_LOGO_FILE)
+                if old_footer_file:
+                    delete_uploaded_file(old_footer_file)
+                
+                uploaded_path = save_uploaded_file(footer_logo_file, "footer_logo")
+                if uploaded_path:
+                    SiteSetting.set(SiteSettingKey.FOOTER_LOGO_FILE, uploaded_path)
+                    SiteSetting.set(SiteSettingKey.FOOTER_LOGO_URL, "")
+                    flash("頁尾 Logo 圖片已上傳。", "success")
+                else:
+                    flash("頁尾 Logo 上傳失敗，請檢查檔案格式。", "danger")
+            elif form.footer_logo_url.data:
+                old_footer_file = SiteSetting.get(SiteSettingKey.FOOTER_LOGO_FILE)
+                if old_footer_file:
+                    delete_uploaded_file(old_footer_file)
+                
+                SiteSetting.set(SiteSettingKey.FOOTER_LOGO_URL, form.footer_logo_url.data)
+                SiteSetting.set(SiteSettingKey.FOOTER_LOGO_FILE, "")
+                flash("已更新頁尾 Logo 連結。", "success")
             
-            uploaded_path = save_uploaded_file(favicon_file, "favicon")
-            if uploaded_path:
-                SiteSetting.set(SiteSettingKey.FAVICON_FILE, uploaded_path)
-                flash("網站圖示 (Favicon) 已上傳。", "success")
-            else:
-                flash("網站圖示上傳失敗，請檢查檔案格式 (.ico 或 .png)。", "danger")
-        
-        # 更新版權文字
-        SiteSetting.set(SiteSettingKey.FOOTER_COPY, form.footer_copy.data or "")
-        
-        flash("已更新網站品牌設定。", "success")
+            if not footer_logo_file or not footer_logo_file.filename:
+                flash("已更新頁尾設定。", "success")
     
     return redirect(url_for("admin.site_settings"))
 

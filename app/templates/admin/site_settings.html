@@ -6,7 +6,7 @@
 {% block page_subtitle %}統一管理網站品牌、導航和頁尾設定{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/icon-picker.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/icon-picker-simple.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -54,6 +54,7 @@
       <div class="admin-card-body">
         <form method="post" action="{{ url_for('admin.update_site_settings') }}" enctype="multipart/form-data" id="basicSettingsForm">
           {{ branding_form.hidden_tag() }}
+          <input type="hidden" name="form_section" value="basic">
           
           <div class="row g-3">
             <div class="col-md-6">
@@ -128,6 +129,7 @@
       <div class="admin-card-body">
         <form method="post" action="{{ url_for('admin.update_site_settings') }}" enctype="multipart/form-data" id="headerSettingsForm">
           {{ branding_form.hidden_tag() }}
+          <input type="hidden" name="form_section" value="header">
           
           <div class="row g-3">
             <div class="col-md-6">
@@ -249,6 +251,7 @@
       <div class="admin-card-body">
         <form method="post" action="{{ url_for('admin.update_site_settings') }}" enctype="multipart/form-data" id="footerSettingsForm">
           {{ branding_form.hidden_tag() }}
+          <input type="hidden" name="form_section" value="footer">
           
           <div class="row g-3">
             <div class="col-md-6">
@@ -462,30 +465,19 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-<script src="{{ url_for('static', filename='js/icon-picker.js') }}"></script>
+<script src="{{ url_for('static', filename='js/icon-picker-simple.js') }}"></script>
 <script>
-// 初始化 Icon Picker
+// Icon Picker 會自動初始化，但需要在 Modal 打開時重新初始化
 document.addEventListener('DOMContentLoaded', function() {
-  // 為所有 icon-picker-input 初始化
-  document.querySelectorAll('.icon-picker-input').forEach(input => {
-    window.initIconPicker(input, {
-      placeholder: '搜尋圖示或輸入自訂名稱...',
-      showCustomInput: true
-    });
-  });
-  
-  // 當 Modal 打開時重新初始化 icon picker
   ['addNavModal', 'editNavModal', 'addFooterModal', 'editFooterModal'].forEach(modalId => {
     const modal = document.getElementById(modalId);
     if (modal) {
       modal.addEventListener('shown.bs.modal', function() {
         const inputs = modal.querySelectorAll('.icon-picker-input');
         inputs.forEach(input => {
-          if (!input.closest('.icon-picker-container')) {
-            window.initIconPicker(input, {
-              placeholder: '搜尋圖示或輸入自訂名稱...',
-              showCustomInput: true
-            });
+          if (!input.dataset.iconPickerInit) {
+            new SimpleIconPicker(input);
+            input.dataset.iconPickerInit = 'true';
           }
         });
       });

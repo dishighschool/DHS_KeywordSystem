@@ -5,6 +5,10 @@
 {% block page_title %}公告橫幅管理{% endblock %}
 {% block page_subtitle %}管理網站導航列下方的公告橫幅，支援多個公告輪播{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/icon-picker-simple.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="row g-4">
   <div class="col-lg-4">
@@ -32,16 +36,8 @@
           </div>
           <div class="mb-3">
             {{ form.icon.label(class_='form-label fw-semibold') }}
-            <div class="input-group">
-              {{ form.icon(class_='form-control', id='announcementIcon', readonly='readonly', value='bi-info-circle-fill') }}
-              <button type="button" class="btn btn-outline-secondary" onclick="openIconPicker('announcementIcon')">
-                <i class="bi bi-search"></i> 選擇圖標
-              </button>
-            </div>
-            <div class="form-text">
-              <i id="announcementIconPreview" class="bi bi-info-circle-fill me-1" style="font-size: 1.2rem;"></i>
-              圖標預覽
-            </div>
+            {{ form.icon(class_='form-control icon-picker-input', id='announcementIcon', placeholder='bi-info-circle-fill') }}
+            <div class="form-text">使用 Bootstrap Icons，例如: bi-info-circle-fill, bi-megaphone-fill</div>
             {% for error in form.icon.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
           </div>
           <div class="mb-3">
@@ -151,16 +147,8 @@
           </div>
           <div class="mb-3">
             <label for="editIcon" class="form-label fw-semibold">圖標</label>
-            <div class="input-group">
-              <input type="text" class="form-control" id="editIcon" readonly>
-              <button type="button" class="btn btn-outline-secondary" onclick="openIconPicker('editIcon')">
-                <i class="bi bi-search"></i> 選擇圖標
-              </button>
-            </div>
-            <div class="form-text">
-              <i id="editIconPreview" class="bi bi-info-circle-fill me-1" style="font-size: 1.2rem;"></i>
-              圖標預覽
-            </div>
+            <input type="text" class="form-control icon-picker-input" id="editIcon" placeholder="bi-info-circle-fill">
+            <div class="form-text">使用 Bootstrap Icons，例如: bi-info-circle-fill, bi-megaphone-fill</div>
           </div>
           <div class="mb-3">
             <div class="form-check">
@@ -184,8 +172,11 @@
 {% block extra_scripts %}
 {{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="{{ url_for('static', filename='js/icon-picker-simple.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // Icon Picker 會自動初始化
+  
   // 初始化拖拽排序
   const announcementsList = document.getElementById('announcementsList');
   if (announcementsList) {
@@ -219,12 +210,23 @@ document.addEventListener('DOMContentLoaded', function() {
       document.getElementById('editText').value = text;
       document.getElementById('editUrl').value = url;
       document.getElementById('editIcon').value = icon;
-      document.getElementById('editIconPreview').className = 'bi ' + icon + ' me-1';
       document.getElementById('editIsActive').checked = isActive;
       
       editModal.show();
     });
   });
+  
+  // 當 Modal 打開時重新初始化 icon picker
+  const editModalEl = document.getElementById('editAnnouncementModal');
+  if (editModalEl) {
+    editModalEl.addEventListener('shown.bs.modal', function() {
+      const editIconInput = document.getElementById('editIcon');
+      if (editIconInput && !editIconInput.dataset.iconPickerInit) {
+        new SimpleIconPicker(editIconInput);
+        editIconInput.dataset.iconPickerInit = 'true';
+      }
+    });
+  }
   
   // 儲存編輯
   document.getElementById('saveEditBtn').addEventListener('click', async function() {
@@ -279,36 +281,6 @@ function toggleAnnouncement(id) {
     alert('操作失敗');
   });
 }
-
-// Icon Picker 功能
-function openIconPicker(inputId) {
-  const iconInput = document.getElementById(inputId);
-  const previewId = inputId + 'Preview';
-  const iconPreview = document.getElementById(previewId);
-  
-  if (typeof window.showIconPicker === 'function') {
-    window.showIconPicker(function(selectedIcon) {
-      iconInput.value = selectedIcon;
-      if (iconPreview) {
-        iconPreview.className = 'bi ' + selectedIcon + ' me-1';
-      }
-    });
-  } else {
-    console.error('Icon Picker not loaded');
-    alert('圖標選擇器未載入，請重新整理頁面');
-  }
-}
-
-// 監聽新增表單的圖標輸入變化
-document.getElementById('announcementIcon').addEventListener('change', function() {
-  const iconPreview = document.getElementById('announcementIconPreview');
-  if (iconPreview && this.value) {
-    iconPreview.className = 'bi ' + this.value + ' me-1';
-  }
-});
-</script>
-
-<script src="{{ url_for('static', filename='js/icon-picker.js') }}"></script>
 </script>
 
 <style>
