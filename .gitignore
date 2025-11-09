@@ -15,8 +15,10 @@ ENV/
 # VSCode
 .vscode/
 
-# GitHub workflows
-.github/
+# GitHub (allow workflows but ignore other files)
+.github/*
+!.github/workflows/
+!.github/copilot-instructions.md
 
 # IDE
 .idea/
@@ -46,6 +48,9 @@ node_modules/
 
 # Static uploads
 app/static/uploads/
+
+# Backups
+backups/
 
 # Others
 .env

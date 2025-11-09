@@ -1,0 +1,266 @@
+{% extends "admin/base.html" %}
+
+{% block title %}自動備份管理{% endblock %}
+
+{% block header_title %}自動備份{% endblock %}
+{% block page_icon_class %}bi bi-cloud-download{% endblock %}
+{% block page_title %}系統自動備份管理{% endblock %}
+{% block page_subtitle %}每天自動備份系統資料，保留 30 天{% endblock %}
+
+{% block content %}
+    <!-- 備份統計 -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-bar-chart"></i> 備份統計</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon bg-primary">
+                            <i class="bi bi-files"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h6 class="text-muted mb-1">總備份數</h6>
+                            <h4 class="mb-0">{{ stats.total_backups }}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon bg-info">
+                            <i class="bi bi-arrow-repeat"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h6 class="text-muted mb-1">自動備份</h6>
+                            <h4 class="mb-0">{{ stats.auto_backups }}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon bg-success">
+                            <i class="bi bi-hand-thumbs-up"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h6 class="text-muted mb-1">手動備份</h6>
+                            <h4 class="mb-0">{{ stats.manual_backups }}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon bg-warning">
+                            <i class="bi bi-database"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h6 class="text-muted mb-1">總容量</h6>
+                            <h4 class="mb-0">{{ stats.total_size_formatted }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if stats.oldest_backup %}
+            <div class="row g-3 mt-2">
+                <div class="col-md-6">
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>最舊備份:</strong>
+                        {{ stats.oldest_backup.strftime('%Y-%m-%d %H:%M:%S') }}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="alert alert-success mb-0">
+                        <i class="bi bi-check-circle"></i>
+                        <strong>最新備份:</strong>
+                        {{ stats.newest_backup.strftime('%Y-%m-%d %H:%M:%S') }}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <!-- 建立手動備份 -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-plus-circle"></i> 建立手動備份</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('admin.create_backup') }}" method="post">
+                        <div class="mb-3">
+                            <label for="description" class="form-label">備份說明 (選填)</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" placeholder="例如: 月度備份、重要更新前..."></textarea>
+                            <small class="form-text text-muted">輸入備份的說明，方便後續識別</small>
+                        </div>
+
+                        <button type="submit" class="btn btn-success btn-lg w-100">
+                            <i class="bi bi-cloud-download"></i> 立即建立備份
+                        </button>
+                    </form>
+
+                    <div class="alert alert-info mt-3 mb-0">
+                        <i class="bi bi-lightbulb"></i>
+                        系統會自動每天建立備份，並保留最近 30 天的備份。
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 清理舊備份 -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-trash"></i> 清理舊備份</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('admin.cleanup_old_backups') }}" method="post" id="cleanupForm">
+                        <div class="mb-3">
+                            <label for="retention_days" class="form-label">保留天數</label>
+                            <input type="number" class="form-control" id="retention_days" name="retention_days" value="30" min="1" max="365">
+                            <small class="form-text text-muted">只保留在指定天數內的備份，其他的將被刪除</small>
+                        </div>
+
+                        <button type="submit" class="btn btn-warning btn-lg w-100" id="cleanupBtn">
+                            <i class="bi bi-trash"></i> 清理舊備份
+                        </button>
+                    </form>
+
+                    <div class="alert alert-danger mt-3 mb-0">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        <strong>警告:</strong> 清理後無法復原，請謹慎操作！
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 備份清單 -->
+    <div class="card">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="bi bi-list"></i> 備份清單</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if backups %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>檔案名稱</th>
+                                <th>類型</th>
+                                <th>建立時間</th>
+                                <th>檔案大小</th>
+                                <th>說明</th>
+                                <th>建立者</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for backup in backups %}
+                            <tr>
+                                <td>
+                                    <code class="text-primary">{{ backup.filename }}</code>
+                                </td>
+                                <td>
+                                    {% if backup.backup_type == 'auto' %}
+                                        <span class="badge bg-info"><i class="bi bi-arrow-repeat"></i> 自動</span>
+                                    {% else %}
+                                        <span class="badge bg-success"><i class="bi bi-hand-thumbs-up"></i> 手動</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ backup.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                <td>{{ backup.get_display_size() }}</td>
+                                <td>
+                                    {% if backup.description %}
+                                        <small>{{ backup.description }}</small>
+                                    {% else %}
+                                        <small class="text-muted">-</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if backup.creator %}
+                                        <small>{{ backup.creator.username }}</small>
+                                    {% else %}
+                                        <small class="text-muted">系統</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{{ url_for('admin.download_backup', backup_id=backup.id) }}" class="btn btn-outline-primary" title="下載">
+                                            <i class="bi bi-download"></i>
+                                        </a>
+                                        <form action="{{ url_for('admin.delete_backup', backup_id=backup.id) }}" method="post" style="display: inline;" onsubmit="return confirm('確定要刪除此備份嗎?');">
+                                            <button type="submit" class="btn btn-outline-danger" title="刪除">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info m-3 mb-0">
+                    <i class="bi bi-info-circle"></i> 尚未建立任何備份
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <style>
+    .stat-card {
+        display: flex;
+        align-items: center;
+        padding: 1.25rem;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        font-size: 1.5rem;
+        color: white;
+    }
+
+    .stat-info h6 {
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-info h4 {
+        font-size: 1.75rem;
+        font-weight: 600;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+    </style>
+
+    <script>
+    document.getElementById('cleanupForm').addEventListener('submit', function(e) {
+        const days = document.getElementById('retention_days').value;
+        if (!confirm(`確定要刪除所有 ${days} 天以前的備份嗎? 此操作無法復原!`)) {
+            e.preventDefault();
+        }
+    });
+    </script>
+{% endblock %}

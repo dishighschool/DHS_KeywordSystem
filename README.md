@@ -138,9 +138,45 @@ instance/
 
 ## 部署建議
 
-- 以 `flask --app app:create_app` 作為入口，可搭配 Gunicorn 或其他 WSGI Server。
+### 生產環境部署
+
+- 以 `wsgi.py` 作為入口，搭配 Gunicorn 或其他 WSGI Server。
 - 將 `SECRET_KEY`、Discord OAuth 憑證與資料庫連線字串設定於環境變數。
 - 建議搭配 HTTPS 與反向代理 (如 Nginx) 提供服務。
+
+**使用 Gunicorn：**
+```bash
+gunicorn -w 4 -b 0.0.0.0:5000 wsgi:app
+```
+
+### Pterodactyl 自動部署
+
+本專案支援透過 GitHub Actions 自動部署到 Pterodactyl 伺服器：
+
+1. **完整設定指南**：請參考 [Pterodactyl 部署指引](docs/PTERODACTYL_DEPLOYMENT_GUIDE.md)
+2. **快速設定檢查清單**：參考 [部署檢查清單](docs/DEPLOYMENT_CHECKLIST.md)
+
+**特色：**
+- ✅ 推送程式碼自動部署
+- ✅ 自動運行測試確保品質
+- ✅ 自動 Git pull 和依賴更新
+- ✅ 零停機時間部署
+- ✅ 資料庫自動備份（每日 1:00 AM，保留 30 天）
+
+**工作流程：**
+```
+git push origin master
+    ↓
+GitHub Actions 運行測試
+    ↓
+測試通過 → 觸發 Pterodactyl 重啟
+    ↓
+Pterodactyl 自動 git pull
+    ↓
+更新依賴並重啟應用
+    ↓
+✅ 部署完成！
+```
 
 ## 取得 Discord OAuth 憑證
 

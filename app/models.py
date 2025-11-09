@@ -287,6 +287,36 @@ class KeywordGoalList(TimestampMixin, BaseModel):
         return (self.completed_items / self.total_items) * 100
 
 
+class SystemBackup(TimestampMixin, BaseModel):
+    """系統備份記錄"""
+    __tablename__ = "system_backups"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    filename: Mapped[str] = mapped_column(nullable=False, unique=True, index=True)
+    filepath: Mapped[str] = mapped_column(nullable=False)
+    file_size: Mapped[int] = mapped_column(default=0, nullable=False)  # 檔案大小（字節）
+    backup_type: Mapped[str] = mapped_column(default="auto", nullable=False)  # auto = 自動, manual = 手動
+    created_by: Mapped[int | None] = mapped_column(db.ForeignKey("users.id"), nullable=True)
+    description: Mapped[str | None]  # 備份說明
+    is_compressed: Mapped[bool] = mapped_column(default=False, nullable=False)  # 是否已壓縮
+
+    creator: Mapped[User | None] = relationship(backref="backups")
+
+    def get_display_size(self) -> str:
+        """取得格式化的檔案大小"""
+        size = self.file_size
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024:
+                return f"{size:.2f} {unit}"
+            size /= 1024
+        return f"{size:.2f} TB"
+
+    def is_older_than_days(self, days: int) -> bool:
+        """檢查備份是否超過指定天數"""
+        age = datetime.utcnow() - self.created_at
+        return age.days >= days
+
+
 class KeywordGoalItem(TimestampMixin, BaseModel):
     """關鍵字目標項目"""
     __tablename__ = "keyword_goal_items"

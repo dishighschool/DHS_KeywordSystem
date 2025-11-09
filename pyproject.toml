@@ -20,6 +20,7 @@ dependencies = [
   "WTForms[email]>=3.1",
   "pypinyin>=0.48",
   "email_validator>=2.0",
+  "APScheduler>=3.10",
 ]
 
 [project.optional-dependencies]

@@ -2086,7 +2086,9 @@ def delete_goal_item(item_id: int):
 @admin_bp.route("/data-management")
 @admin_required
 def data_management():
-    """資料管理頁面 - 匯出/匯入系統資料"""
+    """資料管理頁面 - 匯出/匯入系統資料和備份管理"""
+    from ..utils.backup_service import BackupService
+    
     # 統計資料
     stats = {
         'users': User.query.count(),
@@ -2103,7 +2105,16 @@ def data_management():
         'edit_logs': db.session.query(EditLog).count(),
     }
     
-    return render_template('admin/data_management.html', stats=stats)
+    # 備份資料
+    backups = BackupService.get_backup_list(limit=10)
+    backup_stats = BackupService.get_backup_stats()
+    
+    return render_template(
+        'admin/data_management.html', 
+        stats=stats,
+        backups=backups,
+        backup_stats=backup_stats
+    )
 
 
 @admin_bp.get("/data-management/export")
@@ -2629,4 +2640,127 @@ def import_system_data():
         current_app.logger.error(f"Import error: {e}")
         flash(f'匯入失敗: {str(e)}', 'danger')
         return redirect(url_for('admin.data_management'))
+
+
+# ============================================================================
+# 系統自動備份功能
+# ============================================================================
+
+@admin_bp.post("/backups/create")
+@admin_required
+def create_backup():
+    """建立手動備份"""
+    from ..utils.backup_service import BackupService
+
+    description = request.form.get("description", "").strip()
+
+    try:
+        backup = BackupService.create_backup(
+            created_by=current_user.id,
+            backup_type="manual",
+            description=description if description else None,
+        )
+
+        if backup:
+            flash(f"備份已建立: {backup.filename}", "success")
+            return redirect(url_for("admin.data_management"))
+        else:
+            flash("備份建立失敗，請檢查日誌", "danger")
+            return redirect(url_for("admin.data_management"))
+
+    except Exception as e:
+        current_app.logger.error(f"Backup creation error: {e}")
+        flash(f"備份建立失敗: {str(e)}", "danger")
+        return redirect(url_for("admin.data_management"))
+
+
+@admin_bp.get("/backups/<int:backup_id>/download")
+@admin_required
+def download_backup(backup_id: int):
+    """下載備份檔案"""
+    from flask import send_file
+
+    from ..utils.backup_service import BackupService
+
+    backup = BackupService.get_backup_by_id(backup_id)
+
+    if not backup:
+        flash("備份不存在", "danger")
+        return redirect(url_for("admin.data_management"))
+
+    try:
+        filepath = Path(backup.filepath)
+
+        if not filepath.exists():
+            flash("備份檔案已遺失", "danger")
+            return redirect(url_for("admin.data_management"))
+
+        current_app.logger.info(f"Downloading backup: {backup.filename}")
+        return send_file(
+            filepath,
+            as_attachment=True,
+            download_name=backup.filename,
+            mimetype="application/json",
+        )
+
+    except Exception as e:
+        current_app.logger.error(f"Backup download error: {e}")
+        flash(f"下載失敗: {str(e)}", "danger")
+        return redirect(url_for("admin.data_management"))
+
+
+@admin_bp.post("/backups/<int:backup_id>/delete")
+@admin_required
+def delete_backup(backup_id: int):
+    """刪除備份"""
+    from ..utils.backup_service import BackupService
+
+    backup = BackupService.get_backup_by_id(backup_id)
+
+    if not backup:
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"success": False, "message": "備份不存在"}), 404
+        flash("備份不存在", "danger")
+        return redirect(url_for("admin.data_management"))
+
+    filename = backup.filename
+
+    if BackupService.delete_backup(backup_id):
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"success": True, "message": f"備份已刪除: {filename}"})
+        flash(f"備份已刪除: {filename}", "success")
+    else:
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"success": False, "message": "刪除失敗"}), 500
+        flash("刪除失敗", "danger")
+
+    return redirect(url_for("admin.data_management"))
+
+
+@admin_bp.post("/backups/cleanup")
+@admin_required
+def cleanup_old_backups():
+    """清理舊備份"""
+    from ..utils.backup_service import BackupService
+
+    retention_days = request.form.get("retention_days", 30, type=int)
+
+    try:
+        count = BackupService.cleanup_old_backups(retention_days=retention_days)
+        flash(f"已清理 {count} 個舊備份", "info")
+    except Exception as e:
+        current_app.logger.error(f"Backup cleanup error: {e}")
+        flash(f"清理失敗: {str(e)}", "danger")
+
+    return redirect(url_for("admin.data_management"))
+
+
+@admin_bp.get("/api/backups/stats")
+@admin_required
+def get_backup_stats():
+    """取得備份統計 API"""
+    from ..utils.backup_service import BackupService
+
+    stats = BackupService.get_backup_stats()
+    return jsonify(stats)
 

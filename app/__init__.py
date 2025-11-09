@@ -35,6 +35,7 @@ def create_app(config_object: type[Config] | None = None) -> Flask:
     _register_error_handlers(app)
     _register_cli(app)
     _ensure_database_schema(app)
+    _init_backup_scheduler(app)
 
     return app
 
@@ -246,3 +247,11 @@ def _ensure_database_schema(app: Flask) -> None:
                 raise
 
     app.before_request(verify_schema)
+
+
+def _init_backup_scheduler(app: Flask) -> None:
+    """初始化備份排程器"""
+    from .utils.backup_scheduler import BackupScheduler
+    
+    BackupScheduler.init_app(app)
+

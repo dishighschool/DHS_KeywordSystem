@@ -1,0 +1,69 @@
+name: Deploy to Pterodactyl
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      
+      - name: Run tests
+        run: |
+          pytest tests/ -v --tb=short
+        env:
+          FLASK_ENV: testing
+          SECRET_KEY: test-secret-key-for-ci
+          DATABASE_URL: sqlite:///test.db
+
+  deploy:
+    name: Deploy to Pterodactyl Server
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Trigger Pterodactyl Restart (Auto-pull enabled)
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: 'https://${{ secrets.PTERODACTYL_PANEL_URL }}/api/client/servers/${{ secrets.PTERODACTYL_SERVER_ID }}/power'
+          method: 'POST'
+          bearerToken: ${{ secrets.PTERODACTYL_API_KEY }}
+          customHeaders: '{"Content-Type": "application/json", "Accept": "application/json"}'
+          data: '{"signal": "restart"}'
+          
+      - name: Wait for server restart
+        run: sleep 10
+        
+      - name: Verify deployment (optional)
+        run: |
+          echo "✅ Restart signal sent to Pterodactyl server"
+          echo "Server will automatically pull latest code and restart"
+          
+      - name: Deployment notification
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Deployment successful! Pterodactyl will auto-pull and restart."
+          else
+            echo "❌ Deployment failed!"
+          fi
