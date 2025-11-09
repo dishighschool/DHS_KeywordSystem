@@ -772,7 +772,7 @@ function regenerateSEO() {
 
   showLoadingOverlay('正在生成 SEO 內容...');
 
-  const keywordId = window.location.pathname.split('/').filter(Boolean).pop();
+  const keywordId = window.location.pathname.split('/').filter(Boolean).slice(-2, -1)[0];
   
   fetch(`/admin/keywords/${keywordId}/regenerate-seo`, {
     method: 'POST',
@@ -903,7 +903,7 @@ function saveDraft() {
   if (!form) return;
 
   const formData = new FormData(form);
-  const keywordId = window.location.pathname.split('/').filter(Boolean).pop();
+  const keywordId = window.location.pathname.split('/').filter(Boolean).slice(-2, -1)[0];
 
   fetch(`/admin/keywords/${keywordId}/save-draft`, {
     method: 'POST',

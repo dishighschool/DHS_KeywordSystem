@@ -65,14 +65,25 @@ def generate_bopomofo_typo(text: str) -> str:
     
     try:
         assert pinyin is not None and Style is not None
-        # 使用 pypinyin 獲取注音
+        # 使用 pypinyin 獲取注音和聲調
         bopomofo_list = pinyin(text, style=Style.BOPOMOFO)
+        tone_list = pinyin(text, style=Style.TONE2)
         
-        # 展平列表並合併注音
-        bopomofo_str = ''.join([item[0] for item in bopomofo_list])
+        # 合併注音，保留代表一聲的空格
+        bopomofo_parts = []
+        for bopomofo, tone in zip(bopomofo_list, tone_list):
+            bopomofo_str = bopomofo[0]
+            tone_str = tone[0]
+            # 如果聲調是1（一聲），在注音後加空格
+            if tone_str.endswith('1'):
+                bopomofo_parts.append(bopomofo_str + ' ')
+            else:
+                bopomofo_parts.append(bopomofo_str)
+        
+        combined_bopomofo = ''.join(bopomofo_parts)
         
         # 轉換為鍵盤字母
-        return convert_bopomofo_to_keyboard(bopomofo_str)
+        return convert_bopomofo_to_keyboard(combined_bopomofo)
     
     except Exception:
         logger.exception("pypinyin 轉換失敗")
