@@ -119,6 +119,37 @@ def ensure_authenticated():  # pragma: no cover - integration guard
     return None
 
 
+@admin_bp.post("/api/markdown-preview")
+@login_required
+def markdown_preview():
+    """API endpoint to render markdown preview with same processing as frontend."""
+    from html import unescape
+    from markdown2 import markdown
+    
+    # 取得 JSON 或 form data
+    if request.is_json:
+        data = request.get_json()
+    else:
+        data = request.form.to_dict()
+    
+    if not data or 'markdown' not in data:
+        return jsonify({'error': 'No markdown content provided', 'success': False}), 400
+    
+    markdown_text = data.get('markdown', '')
+    
+    try:
+        # Apply same processing as frontend: unescape then convert to HTML
+        html = markdown(
+            unescape(markdown_text),
+            extras=["fenced-code-blocks", "tables", "strikethrough", "task_lists"],
+            safe_mode="escape"
+        )
+        return jsonify({'html': html, 'success': True})
+    except Exception as e:
+        current_app.logger.error(f"Markdown preview error: {e}")
+        return jsonify({'error': str(e), 'success': False}), 500
+
+
 @admin_bp.get("/")
 def dashboard():
     """Render a role-aware dashboard overview."""

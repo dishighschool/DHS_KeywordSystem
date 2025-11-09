@@ -676,3 +676,455 @@ body {
     transform: rotate(360deg);
   }
 }
+
+/* ============================================================================
+   必填欄位樣式最佳化
+   ============================================================================ */
+
+/* 必填欄位標籤樣式 */
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.text-danger.fw-bold {
+  font-size: 1.1em;
+  line-height: 1;
+}
+
+.badge.bg-danger-light {
+  background-color: #fff3cd !important;
+  color: #856404 !important;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  margin-left: auto;
+}
+
+/* 必填欄位輸入框驗證狀態 */
+.required-field {
+  border: 2px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.required-field:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
+}
+
+.required-field.is-invalid {
+  border-color: #dc3545;
+  background-color: #fff5f5;
+}
+
+.required-field.is-invalid:focus {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.15);
+}
+
+.required-field.is-valid {
+  border-color: #28a745;
+  background-color: #f5fff5;
+}
+
+.required-field.is-valid:focus {
+  border-color: #28a745;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.15);
+}
+
+/* 無效反饋訊息 */
+.invalid-feedback {
+  display: flex;
+  align-items: center;
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  background-color: #fff5f5;
+  border-left: 3px solid #dc3545;
+  border-radius: 4px;
+}
+
+.invalid-feedback i {
+  flex-shrink: 0;
+}
+
+/* Markdown 編輯器容器高亮 */
+.has-required-field.is-invalid {
+  border: 2px solid #dc3545 !important;
+  border-radius: 8px;
+}
+
+/* 高亮欄位效果 */
+@keyframes highlight-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(102, 126, 234, 0);
+  }
+}
+
+.highlight-field {
+  animation: highlight-pulse 0.6s ease-out;
+  border-color: #667eea !important;
+}
+
+/* 側邊欄導航必填欄位指示 */
+.editor-nav-item .nav-required-badge {
+  margin-left: auto;
+  font-size: 1.2em;
+  color: #dc3545;
+  animation: pulse-icon 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-icon {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.editor-nav-item.has-required-missing {
+  position: relative;
+  background-color: #fff5f5;
+  border-radius: 6px;
+  border-left: 3px solid #dc3545;
+}
+
+.editor-nav-item.has-required-missing:hover {
+  background-color: #ffe9e9;
+}
+
+/* 必填欄位警告提示 */
+.alert-warning {
+  background-color: #fff8e1;
+  border: 1px solid #ffe0b2;
+  border-radius: 8px;
+}
+
+.alert-warning strong {
+  color: #856404;
+}
+
+.alert-warning ul {
+  list-style-position: inside;
+}
+
+.alert-warning li {
+  color: #856404;
+  font-size: 0.95rem;
+}
+
+.alert-warning strong {
+  font-weight: 700;
+  color: #d39e00;
+}
+
+/* 表單欄位提示文字 */
+.form-text {
+  font-size: 0.875rem;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  margin-top: 0.375rem;
+}
+
+.form-text i {
+  flex-shrink: 0;
+  margin-right: 0.375rem;
+}
+
+/* 響應式調整 */
+@media (max-width: 768px) {
+  .badge.bg-danger-light {
+    margin-left: 0;
+    display: block;
+    margin-top: 0.5rem;
+  }
+  
+  .form-label {
+    flex-wrap: wrap;
+  }
+  
+  .editor-nav-item .nav-required-badge {
+    margin-left: auto;
+    font-size: 1rem;
+  }
+}
+
+/* ============================================================================
+   Markdown 預覽樣式加強
+   ============================================================================ */
+
+/* 預覽內容容器 */
+.preview-content {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.8;
+  color: #333;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Markdown 標題樣式 */
+.preview-content .markdown-h1 {
+  border-bottom: 3px solid #667eea;
+  padding-bottom: 0.5rem;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  font-size: 2em;
+  color: #212529;
+}
+
+.preview-content .markdown-h2 {
+  border-bottom: 2px solid #667eea;
+  padding-bottom: 0.3rem;
+  margin-top: 1.8rem;
+  margin-bottom: 0.8rem;
+  font-size: 1.75em;
+  color: #2c3e50;
+}
+
+.preview-content .markdown-h3 {
+  border-bottom: 1px solid #e9ecef;
+  margin-top: 1.5rem;
+  margin-bottom: 0.6rem;
+  font-size: 1.5em;
+  color: #34495e;
+}
+
+.preview-content h4,
+.preview-content h5,
+.preview-content h6 {
+  margin-top: 1.2rem;
+  margin-bottom: 0.5rem;
+  color: #34495e;
+}
+
+/* 表格樣式 */
+.preview-content table {
+  width: 100% !important;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  background: white;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.preview-content table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.preview-content table thead th {
+  padding: 14px 16px !important;
+  font-weight: 700;
+  text-align: left !important;
+  border: none !important;
+  font-size: 0.95em;
+  letter-spacing: 0.5px;
+}
+
+.preview-content table tbody tr {
+  transition: all 0.2s ease;
+  background: #f8f9fa !important;
+}
+
+.preview-content table tbody tr:hover {
+  background: #e9ecef !important;
+}
+
+.preview-content table tbody tr:nth-child(odd) {
+  background: white !important;
+}
+
+.preview-content table tbody tr:nth-child(odd):hover {
+  background: #f0f1f5 !important;
+}
+
+.preview-content table tbody td {
+  padding: 12px 16px !important;
+  border-bottom: 1px solid #e9ecef !important;
+  border: none !important;
+}
+
+.preview-content table tbody tr:last-child td {
+  border-bottom: none !important;
+}
+
+/* 代碼塊樣式 */
+.preview-content pre {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 16px !important;
+  border-radius: 6px;
+  border-left: 4px solid #667eea;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.preview-content pre code {
+  background: transparent;
+  padding: 0 !important;
+  border-radius: 0;
+  color: #2c3e50;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9em;
+}
+
+.preview-content code {
+  background: #f5f5f5;
+  color: #c7254e;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+/* 列表樣式 */
+.preview-content ul,
+.preview-content ol {
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.preview-content ul li,
+.preview-content ol li {
+  margin: 0.5rem 0;
+  line-height: 1.8;
+}
+
+.preview-content ul {
+  list-style-type: disc;
+}
+
+.preview-content ul ul {
+  list-style-type: circle;
+}
+
+.preview-content ul ul ul {
+  list-style-type: square;
+}
+
+.preview-content ol {
+  list-style-type: decimal;
+}
+
+/* 引用塊樣式 */
+.preview-content blockquote {
+  border-left: 4px solid #667eea !important;
+  margin: 1.5rem 0;
+  padding-left: 1rem !important;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 4px;
+  color: #666;
+  font-style: italic;
+}
+
+.preview-content blockquote p {
+  margin: 0;
+}
+
+/* 水平線樣式 */
+.preview-content hr {
+  border: none;
+  height: 2px;
+  background: linear-gradient(to right, transparent, #e9ecef, transparent);
+  margin: 2rem 0;
+}
+
+/* 連結樣式 */
+.preview-content a {
+  color: #667eea;
+  text-decoration: none;
+  border-bottom: 1px solid #667eea;
+  transition: all 0.2s ease;
+}
+
+.preview-content a:hover {
+  color: #764ba2;
+  border-bottom-color: #764ba2;
+  background: rgba(102, 126, 234, 0.1);
+  padding: 0 2px;
+}
+
+/* 圖片樣式 */
+.preview-content img {
+  max-width: 100% !important;
+  height: auto !important;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 1rem 0;
+}
+
+.preview-content figure {
+  text-align: center;
+  margin: 1.5rem 0;
+}
+
+.preview-content figcaption {
+  color: #666;
+  font-size: 0.9em;
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+/* 強調樣式 */
+.preview-content strong {
+  font-weight: 700;
+  color: #212529;
+}
+
+.preview-content em {
+  font-style: italic;
+  color: #666;
+}
+
+.preview-content del {
+  text-decoration: line-through;
+  color: #999;
+  opacity: 0.7;
+}
+
+/* 段落樣式 */
+.preview-content p {
+  margin: 1rem 0;
+  line-height: 1.8;
+  color: #444;
+}
+
+/* 分割線樣式 */
+.preview-content hr {
+  margin: 2rem 0;
+  border: none;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #667eea, transparent);
+}
+
+/* 預覽容器滾動條美化 */
+.markdown-preview-pane::-webkit-scrollbar {
+  width: 8px;
+}
+
+.markdown-preview-pane::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.markdown-preview-pane::-webkit-scrollbar-thumb {
+  background: #667eea;
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+.markdown-preview-pane::-webkit-scrollbar-thumb:hover {
+  background: #764ba2;
+}
+
