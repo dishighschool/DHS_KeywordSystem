@@ -157,7 +157,22 @@ def generate_seo_text(keyword: str, aliases: Optional[list[str]] = None) -> dict
     Returns:
         包含各種 SEO 元素的字典
     """
+    keyword = (keyword or "").strip()
     aliases = aliases or []
+    aliases = [alias.strip() for alias in aliases if alias and alias.strip()]
+
+    seen_aliases: set[str] = set()
+    cleaned_aliases: list[str] = []
+    for alias in aliases:
+        normalized = alias.lower()
+        if not alias or normalized in seen_aliases or normalized == keyword.lower():
+            continue
+        cleaned_aliases.append(alias)
+        seen_aliases.add(normalized)
+    aliases = cleaned_aliases
+
+    if not keyword:
+        keyword = "學習關鍵字"
     
     # 生成打字錯誤 (優先生成,因為需要用於問句)
     typos = generate_common_typos(keyword)

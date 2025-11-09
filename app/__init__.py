@@ -105,6 +105,8 @@ def _register_template_context(app: Flask) -> None:
             settings_raw.get('footer_logo_file') or 
             settings_raw.get('footer_logo_url', '')
         )
+        # 整合 favicon 設定
+        settings['favicon_file'] = settings_raw.get('favicon_file', '')
         
         return {
             "nav_links": nav_links,

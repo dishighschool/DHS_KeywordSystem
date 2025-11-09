@@ -39,11 +39,11 @@
 
 1. **複製專案並建立虛擬環境**
 
-   ```pwsh
-   python -m venv .venv
-   .\.venv\Scripts\Activate.ps1
-   pip install -e .[dev]
-   ```
+  ```pwsh
+  python -m venv .venv
+  .\.venv\Scripts\Activate.ps1
+  pip install -r requirements-dev.txt
+  ```
 
 2. **建立設定檔**
 

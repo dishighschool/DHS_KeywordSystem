@@ -724,14 +724,14 @@
 }
 
 /* 連結樣式 */
-.markdown-body a {
+.markdown-body a:not(.keyword-link) {
   color: #667eea;
   text-decoration: none;
   border-bottom: 1px solid #667eea;
   transition: all 0.2s ease;
 }
 
-.markdown-body a:hover {
+.markdown-body a:not(.keyword-link):hover {
   color: #764ba2;
   border-bottom-color: #764ba2;
   background: rgba(102, 126, 234, 0.1);

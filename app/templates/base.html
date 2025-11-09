@@ -35,7 +35,12 @@
     <link rel="canonical" href="{% block canonical %}{{ request.url }}{% endblock %}">
     
     
+    <!-- Favicon -->
+    {% if site_settings.favicon_file %}
+    <link rel="icon" type="image/x-icon" href="{{ site_settings.favicon_file }}">
+    {% else %}
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    {% endif %}
     <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     

@@ -896,6 +896,7 @@ def site_settings():
     # 獲取當前的 logo
     header_logo = SiteSetting.get(SiteSettingKey.HEADER_LOGO_FILE) or SiteSetting.get(SiteSettingKey.HEADER_LOGO_URL, "")
     footer_logo = SiteSetting.get(SiteSettingKey.FOOTER_LOGO_FILE) or SiteSetting.get(SiteSettingKey.FOOTER_LOGO_URL, "")
+    current_favicon = SiteSetting.get(SiteSettingKey.FAVICON_FILE, "")
     
     return render_template(
         "admin/site_settings.html",
@@ -905,7 +906,8 @@ def site_settings():
         nav_links=nav_links,
         footer_links=footer_links,
         current_header_logo=header_logo,
-        current_footer_logo=footer_logo
+        current_footer_logo=footer_logo,
+        current_favicon=current_favicon
     )
 
 
@@ -981,6 +983,20 @@ def update_site_settings():
             SiteSetting.set(SiteSettingKey.FOOTER_LOGO_URL, form.footer_logo_url.data)
             SiteSetting.set(SiteSettingKey.FOOTER_LOGO_FILE, "")
         
+        # 處理 Favicon
+        favicon_file = request.files.get('favicon_file')
+        if favicon_file and favicon_file.filename:
+            old_favicon_file = SiteSetting.get(SiteSettingKey.FAVICON_FILE)
+            if old_favicon_file:
+                delete_uploaded_file(old_favicon_file)
+            
+            uploaded_path = save_uploaded_file(favicon_file, "favicon")
+            if uploaded_path:
+                SiteSetting.set(SiteSettingKey.FAVICON_FILE, uploaded_path)
+                flash("網站圖示 (Favicon) 已上傳。", "success")
+            else:
+                flash("網站圖示上傳失敗，請檢查檔案格式 (.ico 或 .png)。", "danger")
+        
         # 更新版權文字
         SiteSetting.set(SiteSettingKey.FOOTER_COPY, form.footer_copy.data or "")
         
@@ -1012,6 +1028,21 @@ def delete_logo():
                 SiteSetting.set(SiteSettingKey.FOOTER_LOGO_FILE, "")
         
         return jsonify({"success": True, "message": "Logo 已刪除"})
+    except Exception as e:
+        return jsonify({"success": False, "message": f"刪除失敗: {str(e)}"}), 500
+
+
+@admin_bp.post("/branding/delete-favicon")
+@admin_required
+def delete_favicon():
+    """Delete the uploaded favicon file."""
+    try:
+        old_file = SiteSetting.get(SiteSettingKey.FAVICON_FILE)
+        if old_file:
+            delete_uploaded_file(old_file)
+            SiteSetting.set(SiteSettingKey.FAVICON_FILE, "")
+        
+        return jsonify({"success": True, "message": "網站圖示已刪除"})
     except Exception as e:
         return jsonify({"success": False, "message": f"刪除失敗: {str(e)}"}), 500
 

@@ -19,6 +19,113 @@ from ..utils.seo import generate_seo_html
 main_bp = Blueprint("main", __name__)
 
 
+def _clean_title(value: str | None) -> str:
+    """Return a trimmed title with normalized internal whitespace."""
+    if not value:
+        return ""
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def _plain_text_from_html(html: str) -> str:
+    """Collapse HTML to plain text with normalized whitespace."""
+    text = re.sub(r"<[^>]+>", " ", html)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _plain_text_from_seo(seo_content: str | None) -> str:
+    """Collapse generated SEO content into a searchable snippet."""
+    if not seo_content:
+        return ""
+    parts: list[str] = []
+    for raw_line in seo_content.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line.startswith("相關搜尋："):
+            _, _, payload = line.partition("：")
+            parts.append(payload.strip())
+        else:
+            parts.append(line)
+    combined = " ".join(parts)
+    return re.sub(r"\s+", " ", combined).strip()
+
+
+def _extract_related_queries(seo_content: str | None) -> list[str]:
+    """Extract related search queries from SEO content."""
+    queries: list[str] = []
+    if not seo_content:
+        return queries
+    for raw_line in seo_content.splitlines():
+        line = raw_line.strip()
+        if not line.startswith("相關搜尋："):
+            continue
+        _, _, payload = line.partition("：")
+        for item in payload.split("、"):
+            cleaned = _clean_title(item)
+            if cleaned:
+                queries.append(cleaned)
+    return queries
+
+
+def _truncate_text(text: str, limit: int = 160) -> str:
+    """Truncate long text safely for meta usage."""
+    if limit <= 0:
+        return ""
+    if len(text) <= limit:
+        return text
+    if limit <= 3:
+        return text[:limit]
+    return text[: limit - 3].rstrip() + "..."
+
+
+def _prepare_seo_sections(seo_content: str | None) -> dict[str, object]:
+    """Prepare structured SEO sections for template rendering."""
+    if not seo_content:
+        return {"title": "", "paragraphs": [], "related_queries": []}
+
+    lines = [line.strip() for line in seo_content.splitlines() if line.strip()]
+    if not lines:
+        return {"title": "", "paragraphs": [], "related_queries": []}
+
+    title_line = _clean_title(lines[0])
+    paragraphs: list[str] = []
+    related_queries: list[str] = []
+
+    for line in lines[1:]:
+        if line.startswith("相關搜尋："):
+            _, _, payload = line.partition("：")
+            for item in payload.split("、"):
+                cleaned = _clean_title(item)
+                if cleaned:
+                    related_queries.append(cleaned)
+        else:
+            paragraphs.append(line)
+
+    return {
+        "title": title_line,
+        "paragraphs": paragraphs,
+        "related_queries": related_queries,
+    }
+
+
+def _build_meta_keywords(base_terms: list[str], related_queries: list[str]) -> str:
+    """Create a concise, deduplicated keyword list for meta tags."""
+    seen: set[str] = set()
+    keywords: list[str] = []
+
+    for term in base_terms + related_queries:
+        cleaned = _clean_title(term)
+        key = cleaned.lower()
+        if not cleaned or key in seen:
+            continue
+        keywords.append(cleaned)
+        seen.add(key)
+        if len(keywords) >= 16:
+            break
+
+    return ",".join(keywords)
+
+
 @main_bp.get("/")
 def index():
     """Render the landing page with search capabilities."""
@@ -93,19 +200,22 @@ def category_detail(slug: str):
 @main_bp.get("/<string:category_slug>/<string:slug>")
 def keyword_detail(category_slug: str, slug: str):
     """Render a keyword or alias detail page optimized for reading and SEO."""
-    # First try to find a public keyword with this slug
     keyword = (
         LearningKeyword.query
         .join(LearningKeyword.category)
         .filter(
             LearningKeyword.slug == slug,
             LearningKeyword.is_public == True,
-            KeywordCategory.is_public == True
+            KeywordCategory.is_public == True,
         )
         .first()
     )
-    
-    # If not found, try to find an alias with this slug (pointing to public keyword)
+
+    alias = None
+    is_alias = False
+    canonical_url: str | None = None
+    current_alias_id: int | None = None
+
     if not keyword:
         alias = (
             KeywordAlias.query
@@ -114,114 +224,56 @@ def keyword_detail(category_slug: str, slug: str):
             .filter(
                 KeywordAlias.slug == slug,
                 LearningKeyword.is_public == True,
-                KeywordCategory.is_public == True
+                KeywordCategory.is_public == True,
             )
             .first()
         )
-        
-        if alias:
-            # Found an alias, prepare alias-specific data
-            keyword = alias.keyword
-            expected_category_slug = slugify(keyword.category.name)
-            
-            # Validate category slug
-            if category_slug.lower() != expected_category_slug:
-                return redirect(
-                    url_for("main.keyword_detail", category_slug=expected_category_slug, slug=slug),
-                    code=301,
-                )
-            
-            # Increment view count
-            keyword.view_count += 1
-            db.session.commit()
-            
-            # Convert markdown and link keywords
-            # Ensure any HTML entities in stored markdown (e.g. &lt;, &#124;) are unescaped
-            # before converting to HTML so markdown features like tables parse
-            # correctly.
-            html_description = markdown(unescape(keyword.description_markdown or ""), extras=["fenced-code-blocks", "tables", "strikethrough", "task_lists"], safe_mode="escape")  # noqa: S607
-            html_description = keyword_linker.link_keywords_in_html(html_description, current_keyword_id=keyword.id)
-            
-            # Get related keywords (public only)
-            related_keywords = (
-                LearningKeyword.query
-                .filter(
-                    LearningKeyword.category_id == keyword.category_id,
-                    LearningKeyword.is_public == True,
-                    LearningKeyword.id != keyword.id,
-                )
-                .order_by(LearningKeyword.position.asc())
-                .all()
-            )
-            
-            # Build alternative names list (main keyword + other aliases)
-            alternative_names = []
-            
-            # Add canonical keyword
-            alternative_names.append({
-                'title': keyword.title,
-                'url': url_for('main.keyword_detail', category_slug=expected_category_slug, slug=keyword.slug)
-            })
-            
-            # Add all other aliases (except current one)
-            for other_alias in keyword.aliases:
-                if other_alias.id != alias.id:
-                    alternative_names.append({
-                        'title': other_alias.title,
-                        'url': url_for('main.keyword_detail', category_slug=expected_category_slug, slug=other_alias.slug)
-                    })
-            
-            canonical_url = url_for(
-                "main.keyword_detail", category_slug=expected_category_slug, slug=keyword.slug, _external=True
-            )
-            
-            # Generate or use SEO content (for alias, use display title)
-            all_aliases = [keyword.title] + [a['title'] for a in alternative_names if a['title'] != alias.title]
-            if keyword.seo_auto_generate or not keyword.seo_content:
-                # 自動生成 SEO 內容 (使用別名作為主要關鍵字)
-                seo_html = generate_seo_html(alias.title, aliases=all_aliases)
-                # 儲存到資料庫 (使用主關鍵字的設定)
-                if keyword.seo_auto_generate:
-                    keyword.seo_content = seo_html
-                    db.session.commit()
-            else:
-                # 使用資料庫中的 SEO 內容
-                seo_html = keyword.seo_content
-            
-            return render_template(
-                "main/keyword_detail.html",
-                keyword=keyword,
-                display_title=alias.title,
-                last_modified=alias.updated_at,
-                html_description=html_description,
-                related_keywords=related_keywords,
-                alternative_names=alternative_names,
-                canonical_url=canonical_url,
-                is_alias=True,
-                seo_content=seo_html,
-            )
-        
-        # Neither keyword nor alias found
-        abort(404)
 
-    # Found a keyword, prepare keyword-specific data
-    expected_category_slug = slugify(keyword.category.name)
-    if category_slug.lower() != expected_category_slug:
-        return redirect(
-            url_for("main.keyword_detail", category_slug=expected_category_slug, slug=keyword.slug),
-            code=301,
+        if not alias:
+            abort(404)
+
+        keyword = alias.keyword
+        expected_category_slug = slugify(keyword.category.name)
+
+        if category_slug.lower() != expected_category_slug:
+            return redirect(
+                url_for("main.keyword_detail", category_slug=expected_category_slug, slug=slug),
+                code=301,
+            )
+
+        is_alias = True
+        canonical_url = url_for(
+            "main.keyword_detail", category_slug=expected_category_slug, slug=keyword.slug, _external=True
         )
+        current_alias_id = alias.id
+        display_title = _clean_title(alias.title)
+        last_modified = alias.updated_at
+    else:
+        expected_category_slug = slugify(keyword.category.name)
+        if category_slug.lower() != expected_category_slug:
+            return redirect(
+                url_for("main.keyword_detail", category_slug=expected_category_slug, slug=keyword.slug),
+                code=301,
+            )
 
-    # Increment view count
+        display_title = _clean_title(keyword.title)
+        last_modified = keyword.updated_at
+
+    keyword_clean_title = _clean_title(keyword.title)
+    category_name = _clean_title(keyword.category.name)
+
     keyword.view_count += 1
-    db.session.commit()
 
-    # Convert markdown to HTML (unescape stored HTML entities first so
-    # markdown tables and other block-level syntax render correctly)
-    html_description = markdown(unescape(keyword.description_markdown or ""), extras=["fenced-code-blocks", "tables", "strikethrough", "task_lists"], safe_mode="escape")  # noqa: S607
-    
-    # Auto-link other keywords in the content
-    html_description = keyword_linker.link_keywords_in_html(html_description, current_keyword_id=keyword.id)
+    raw_markdown = unescape(keyword.description_markdown or "")
+    html_description = markdown(
+        raw_markdown,
+        extras=["fenced-code-blocks", "tables", "strikethrough", "task_lists"],
+        safe_mode="escape",
+    )  # noqa: S607
+    html_description = keyword_linker.link_keywords_in_html(
+        html_description, current_keyword_id=keyword.id
+    )
+    description_plain = _plain_text_from_html(html_description)
 
     related_keywords = (
         LearningKeyword.query
@@ -234,38 +286,109 @@ def keyword_detail(category_slug: str, slug: str):
         .all()
     )
 
-    # Build alternative names list (all aliases)
-    alternative_names = []
-    for alias in keyword.aliases:
-        alternative_names.append({
-            'title': alias.title,
-            'url': url_for('main.keyword_detail', category_slug=expected_category_slug, slug=alias.slug)
-        })
+    alternative_names: list[dict[str, str]] = []
+    if is_alias:
+        alternative_names.append(
+            {
+                "title": keyword_clean_title,
+                "url": url_for(
+                    "main.keyword_detail",
+                    category_slug=keyword.category.slug,
+                    slug=keyword.slug,
+                ),
+            }
+        )
+        for other_alias in keyword.aliases:
+            if other_alias.id == current_alias_id:
+                continue
+            alt_title = _clean_title(other_alias.title)
+            if not alt_title:
+                continue
+            alternative_names.append(
+                {
+                    "title": alt_title,
+                    "url": url_for(
+                        "main.keyword_detail",
+                        category_slug=keyword.category.slug,
+                        slug=other_alias.slug,
+                    ),
+                }
+            )
+    else:
+        for keyword_alias in keyword.aliases:
+            alt_title = _clean_title(keyword_alias.title)
+            if not alt_title:
+                continue
+            alternative_names.append(
+                {
+                    "title": alt_title,
+                    "url": url_for(
+                        "main.keyword_detail",
+                        category_slug=keyword.category.slug,
+                        slug=keyword_alias.slug,
+                    ),
+                }
+            )
 
-    # Generate or use SEO content
-    all_aliases = [a['title'] for a in alternative_names]
+    seo_alias_titles: list[str] = []
+    if is_alias:
+        seo_alias_titles.append(keyword_clean_title)
+        for other_alias in keyword.aliases:
+            if other_alias.id == current_alias_id:
+                continue
+            alt_title = _clean_title(other_alias.title)
+            if alt_title:
+                seo_alias_titles.append(alt_title)
+    else:
+        for keyword_alias in keyword.aliases:
+            alt_title = _clean_title(keyword_alias.title)
+            if alt_title:
+                seo_alias_titles.append(alt_title)
+
+    seo_keyword_title = display_title if is_alias else keyword_clean_title
+
     if keyword.seo_auto_generate or not keyword.seo_content:
-        # 自動生成 SEO 內容
-        seo_html = generate_seo_html(keyword.title, aliases=all_aliases)
-        # 儲存到資料庫
+        seo_html = generate_seo_html(seo_keyword_title, aliases=seo_alias_titles)
         if keyword.seo_auto_generate:
             keyword.seo_content = seo_html
-            db.session.commit()
     else:
-        # 使用資料庫中的自訂 SEO 內容
         seo_html = keyword.seo_content
+
+    seo_html = seo_html or ""
+    seo_plain_text = _plain_text_from_seo(seo_html)
+    seo_sections = _prepare_seo_sections(seo_html)
+    related_queries = seo_sections.get("related_queries", [])
+
+    meta_description_source = seo_plain_text or description_plain or display_title
+    seo_meta_description = _truncate_text(meta_description_source, 160)
+
+    base_terms = [display_title, keyword_clean_title, category_name]
+    base_terms.extend([entry["title"] for entry in alternative_names])
+    base_terms.extend(["學習關鍵字", "教育資源"])
+    seo_meta_keywords = _build_meta_keywords(
+        base_terms,
+        related_queries if isinstance(related_queries, list) else [],
+    )
+
+    db.session.commit()
 
     return render_template(
         "main/keyword_detail.html",
         keyword=keyword,
-        display_title=keyword.title,
-        last_modified=keyword.updated_at,
+        display_title=display_title,
+        keyword_clean_title=keyword_clean_title,
+    category_name=category_name,
+        last_modified=last_modified,
         html_description=html_description,
         related_keywords=related_keywords,
         alternative_names=alternative_names if alternative_names else None,
-        canonical_url=None,
-        is_alias=False,
+        canonical_url=canonical_url,
+        is_alias=is_alias,
         seo_content=seo_html,
+        seo_sections=seo_sections,
+        seo_plain_text=seo_plain_text,
+        seo_meta_description=seo_meta_description,
+        seo_meta_keywords=seo_meta_keywords,
     )
 
 
@@ -328,43 +451,76 @@ def api_search():
     
     # Build search data
     search_data = []
+    seo_cache: dict[int, dict[str, object]] = {}
     
     # Add keywords
     for keyword in keywords:
-        # Convert markdown to plain text for description
-        # Unescape stored entities before converting to plain HTML for
-        # description extraction used in the search index.
-        description_html = markdown(unescape(keyword.description_markdown or ""), extras=["fenced-code-blocks", "tables", "strikethrough", "task_lists"], safe_mode="escape")
-        description_text = unescape(re.sub(r'<[^>]+>', '', description_html))
-        
+        description_html = markdown(
+            unescape(keyword.description_markdown or ""),
+            extras=["fenced-code-blocks", "tables", "strikethrough", "task_lists"],
+            safe_mode="escape",
+        )
+        description_text = _plain_text_from_html(description_html)
+
+        alias_titles = [
+            _clean_title(alias.title)
+            for alias in keyword.aliases
+            if _clean_title(alias.title)
+        ]
+
+        seo_content = keyword.seo_content or generate_seo_html(
+            _clean_title(keyword.title),
+            aliases=alias_titles,
+        )
+        seo_plain_text = _plain_text_from_seo(seo_content)
+        seo_sections = _prepare_seo_sections(seo_content)
+        related_queries = seo_sections.get("related_queries", [])
+        seo_cache[keyword.id] = {
+            "plain": seo_plain_text,
+            "related_queries": related_queries if isinstance(related_queries, list) else [],
+        }
+
         search_data.append({
-            'title': keyword.title,
+            'title': _clean_title(keyword.title),
             'slug': keyword.slug,
-            'category': keyword.category.name,
+            'category': _clean_title(keyword.category.name),
             'category_slug': keyword.category.slug,
             'category_icon': keyword.category.icon,
-            'description': description_text[:150],  # First 150 chars
+            'description': _truncate_text(description_text, 150),
+            'description_full': description_text,
             'url': url_for('main.keyword_detail', category_slug=keyword.category.slug, slug=keyword.slug),
             'type': 'keyword',
-            'updated_at': keyword.updated_at.strftime('%Y-%m-%d')
+            'updated_at': keyword.updated_at.strftime('%Y-%m-%d'),
+            'seo_text': seo_plain_text,
+            'seo_related_queries': seo_cache[keyword.id]['related_queries'],
         })
     
     # Add aliases
     for alias in aliases:
-        description_html = markdown(unescape(alias.keyword.description_markdown or ""), extras=["fenced-code-blocks", "tables", "strikethrough", "task_lists"], safe_mode="escape")
-        description_text = unescape(re.sub(r'<[^>]+>', '', description_html))
-        
+        description_html = markdown(
+            unescape(alias.keyword.description_markdown or ""),
+            extras=["fenced-code-blocks", "tables", "strikethrough", "task_lists"],
+            safe_mode="escape",
+        )
+        description_text = _plain_text_from_html(description_html)
+
+        keyword_seo = seo_cache.get(alias.keyword_id, {"plain": "", "related_queries": []})
+        seo_plain_text = keyword_seo.get("plain", "")
+
         search_data.append({
-            'title': alias.title,
+            'title': _clean_title(alias.title),
             'slug': alias.slug,
-            'category': alias.keyword.category.name,
+            'category': _clean_title(alias.keyword.category.name),
             'category_slug': alias.keyword.category.slug,
             'category_icon': alias.keyword.category.icon,
-            'description': description_text[:150],
+            'description': _truncate_text(description_text, 150),
+            'description_full': description_text,
             'url': url_for('main.keyword_detail', category_slug=alias.keyword.category.slug, slug=alias.slug),
             'type': 'alias',
-            'main_keyword': alias.keyword.title,
-            'updated_at': alias.updated_at.strftime('%Y-%m-%d')
+            'main_keyword': _clean_title(alias.keyword.title),
+            'updated_at': alias.updated_at.strftime('%Y-%m-%d'),
+            'seo_text': str(seo_plain_text),
+            'seo_related_queries': keyword_seo.get('related_queries', []),
         })
     
     return jsonify(search_data)

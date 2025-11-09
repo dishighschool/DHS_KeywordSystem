@@ -188,6 +188,7 @@ class SiteSettingKey(enum.StrEnum):
     FOOTER_LOGO_URL = "footer_logo_url"
     FOOTER_LOGO_FILE = "footer_logo_file"
     FOOTER_COPY = "footer_copy"
+    FAVICON_FILE = "favicon_file"
     REGISTRATION_USER_KEY = "registration_user_key"
     REGISTRATION_ADMIN_KEY = "registration_admin_key"
 

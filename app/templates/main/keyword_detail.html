@@ -2,12 +2,12 @@
 
 {% block title %}{{ display_title }}{% endblock %}
 {% block meta_title %}{{ display_title }} | 迪斯中學學習平台{% endblock %}
-{% block meta_description %}{{ keyword.description_markdown|striptags|truncate(150, True, '...') }}{% endblock %}
-{% block meta_keywords %}{{ display_title }},{{ keyword.title }},{{ keyword.category.name }},學習關鍵字,教育資源{% endblock %}
+{% block meta_description %}{{ seo_meta_description }}{% endblock %}
+{% block meta_keywords %}{{ seo_meta_keywords }}{% endblock %}
 
 {% block og_type %}article{% endblock %}
 {% block og_title %}{{ display_title }}{% endblock %}
-{% block og_description %}{{ keyword.description_markdown|striptags|truncate(150, True, '...') }}{% endblock %}
+{% block og_description %}{{ seo_meta_description }}{% endblock %}
 
 {% block structured_data %}
 {{ super() }}
@@ -15,24 +15,24 @@
 {
   "@context": "https://schema.org",
   "@type": "Article",
-  "headline": "{{ display_title }}",
-  "description": "{{ keyword.description_markdown|striptags|truncate(200, True, '...') }}",
+  "headline": {{ display_title|tojson }},
+  "description": {{ seo_meta_description|tojson }},
   "author": {
     "@type": "Person",
-    "name": "{{ keyword.author.username }}"
+    "name": {{ keyword.author.username|tojson }}
   },
   "datePublished": "{{ keyword.created_at.isoformat() }}",
   "dateModified": "{{ last_modified.isoformat() }}",
   {% if is_alias %}
-  "mainEntityOfPage": "{{ canonical_url }}",
-  "alternateName": "{{ keyword.title }}",
+  "mainEntityOfPage": {{ canonical_url|tojson }},
+  "alternateName": {{ keyword_clean_title|tojson }},
   "isPartOf": {
     "@type": "CreativeWork",
-    "name": "{{ keyword.title }}",
-    "@id": "{{ canonical_url }}"
+    "name": {{ keyword_clean_title|tojson }},
+    "@id": {{ canonical_url|tojson }}
   },
   {% else %}
-  "articleSection": "{{ keyword.category.name }}",
+  "articleSection": {{ category_name|tojson }},
   {% endif %}
   "inLanguage": "zh-TW"
 }
@@ -48,7 +48,7 @@
         <i class="bi bi-house-fill me-1"></i><span class="d-none d-sm-inline">首頁</span>
       </a></li>
       <li class="breadcrumb-item"><a href="{{ url_for('main.category_detail', slug=keyword.category.slug) }}" class="text-decoration-none">
-        {{ keyword.category.name }}
+        {{ category_name }}
       </a></li>
       <li class="breadcrumb-item active" aria-current="page">{{ display_title }}</li>
     </ol>
@@ -148,7 +148,7 @@
       {% if related_keywords %}
       <div class="related-keywords-section mb-3 mb-md-4">
         <h2 class="h4 h3-md fw-bold text-dark mb-3 mb-md-4">
-          <i class="bi bi-collection me-2 text-primary"></i>{{ keyword.category.name }} <span class="d-none d-sm-inline">分類的</span>其他關鍵字
+          <i class="bi bi-collection me-2 text-primary"></i>{{ category_name }} <span class="d-none d-sm-inline">分類的</span>其他關鍵字
         </h2>
         
         <div class="row g-2 g-md-3">
@@ -172,49 +172,32 @@
       {% endif %}
 
       
-      {% if seo_content %}
+      {% if seo_sections.title or seo_sections.paragraphs or seo_sections.related_queries %}
       <div class="seo-section mt-5 pt-4">
         <div class="container-fluid px-0">
-          {% set lines = seo_content.split('\n') %}
-          {% set title_line = lines[0] if lines else '' %}
-          {% set content_lines = lines[1:] if lines|length > 1 else [] %}
-          
-          
-          {% if title_line %}
+          {% if seo_sections.title %}
           <h3 class="seo-heading mb-4">
-            <i class="bi bi-search me-2"></i>{{ title_line }}
+            <i class="bi bi-search me-2"></i>{{ seo_sections.title }}
           </h3>
           {% endif %}
-          
-          
+
           <div class="seo-content-body">
-            {% for line in content_lines %}
-              {% if line.strip() %}
-                {% if line.startswith('相關搜尋：') %}
-                  
-                  <div class="seo-questions mt-4">
-                    <h5 class="mb-3">
-                      <i class="bi bi-tags-fill me-2"></i>相關搜尋
-                    </h5>
-                    <div class="d-flex flex-wrap gap-2">
-                      {% set queries = line.replace('相關搜尋：', '').split('、') %}
-                      {% for query in queries %}
-                        {% if query.strip() %}
-                        <span class="badge rounded-pill">
-                          {{ query.strip() }}
-                        </span>
-                        {% endif %}
-                      {% endfor %}
-                    </div>
-                  </div>
-                {% else %}
-                  
-                  <p class="seo-paragraph">
-                    {{ line }}
-                  </p>
-                {% endif %}
-              {% endif %}
+            {% for paragraph in seo_sections.paragraphs %}
+            <p class="seo-paragraph">{{ paragraph }}</p>
             {% endfor %}
+
+            {% if seo_sections.related_queries %}
+            <div class="seo-questions mt-4">
+              <h5 class="mb-3">
+                <i class="bi bi-tags-fill me-2"></i>相關搜尋
+              </h5>
+              <div class="d-flex flex-wrap gap-2">
+                {% for query in seo_sections.related_queries %}
+                <span class="badge rounded-pill">{{ query }}</span>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
           </div>
         </div>
       </div>

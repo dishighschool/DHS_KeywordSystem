@@ -104,6 +104,9 @@ class SeedService:
     def _ensure_branding(self) -> None:
         if not SiteSetting.get(SiteSettingKey.FOOTER_COPY):
             SiteSetting.set(SiteSettingKey.FOOTER_COPY, "© 2025 學習關鍵字平台")
+        # 可以設定預設 favicon（如果有預設檔案的話）
+        # if not SiteSetting.get(SiteSettingKey.FAVICON_FILE):
+        #     SiteSetting.set(SiteSettingKey.FAVICON_FILE, "/static/favicon.ico")
 
     def _ensure_registration_keys(self) -> None:
         if not SiteSetting.get(SiteSettingKey.REGISTRATION_USER_KEY):

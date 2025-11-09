@@ -30,7 +30,58 @@
 
   
   function normalizeText(text) {
-    return text.toLowerCase().trim();
+    return typeof text === 'string' ? text.toLowerCase().trim() : '';
+  }
+
+  
+  function escapeRegExp(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  
+  function truncateText(text, maxLength = 160) {
+    if (typeof text !== 'string') {
+      return '';
+    }
+    if (text.length <= maxLength) {
+      return text;
+    }
+    if (maxLength <= 3) {
+      return text.slice(0, maxLength);
+    }
+    return `${text.slice(0, maxLength - 3).trimEnd()}...`;
+  }
+
+  
+  function buildSnippet(text, normalizedQuery, limit = 160) {
+    if (typeof text !== 'string' || !text.length) {
+      return '';
+    }
+    if (!normalizedQuery) {
+      return truncateText(text, limit);
+    }
+
+    const lowerText = text.toLowerCase();
+    const index = lowerText.indexOf(normalizedQuery);
+
+    if (index === -1) {
+      return truncateText(text, limit);
+    }
+
+    const half = Math.floor(limit / 2);
+    let start = Math.max(0, index - half);
+    if (start > 0) {
+      const previousSpace = text.lastIndexOf(' ', index);
+      if (previousSpace > start) {
+        start = previousSpace + 1;
+      }
+    }
+    const end = Math.min(text.length, start + limit);
+    const snippet = text.slice(start, end).trim();
+    const prefix = start > 0 ? '...' : '';
+    const suffix = end < text.length ? '...' : '';
+
+    return `${prefix}${snippet}${suffix}`;
   }
 
   
@@ -43,25 +94,29 @@
     
     return searchData.filter(item => {
       const titleMatch = normalizeText(item.title).includes(normalizedQuery);
-      const descriptionMatch = normalizeText(item.description).includes(normalizedQuery);
+      const descriptionMatch = normalizeText(item.description_full || item.description).includes(normalizedQuery);
       const categoryMatch = normalizeText(item.category).includes(normalizedQuery);
       const mainKeywordMatch = item.main_keyword && normalizeText(item.main_keyword).includes(normalizedQuery);
+      const seoMatch = item.seo_text && normalizeText(item.seo_text).includes(normalizedQuery);
       
-      return titleMatch || descriptionMatch || categoryMatch || mainKeywordMatch;
+      return titleMatch || descriptionMatch || categoryMatch || mainKeywordMatch || seoMatch;
     }).slice(0, 20);
   }
 
   
   function highlightText(text, query) {
-    if (!query) return text;
-    
-    const regex = new RegExp(`(${query})`, 'gi');
+    if (typeof text !== 'string' || !query) {
+      return typeof text === 'string' ? text : '';
+    }
+
+    const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
     return text.replace(regex, '<mark class="bg-warning bg-opacity-50">$1</mark>');
   }
 
   
   function renderResults(results, query) {
     const isMobile = window.innerWidth < 768;
+    const normalizedQuery = normalizeText(query);
     
     if (results.length === 0) {
       searchResultsList.innerHTML = `
@@ -74,10 +129,20 @@
     }
 
     const html = results.map(item => {
-      const titleHtml = highlightText(item.title, query);
-      const descriptionHtml = highlightText(item.description, query);
+  const titleHtml = highlightText(item.title || '', query);
+  const categoryHtml = highlightText(item.category || '', query);
+      const aliasTargetHtml = item.main_keyword ? highlightText(item.main_keyword, query) : '';
+
+  const descriptionSource = item.description_full || item.description || '';
+  const descriptionMatch = normalizeText(descriptionSource).includes(normalizedQuery);
+  const snippetSource = descriptionMatch || !item.seo_text ? descriptionSource : item.seo_text || '';
+  const snippetPlainRaw = buildSnippet(snippetSource, normalizedQuery, 160);
+  const snippetPlain = snippetPlainRaw || item.description || '';
+  const snippetHtml = highlightText(snippetPlain, query);
+  const shouldShowSnippet = snippetPlain.trim().length > 0;
+
       const categoryBadge = `<span class="badge bg-primary-subtle text-primary ${isMobile ? 'me-1' : 'me-2'}">
-        <i class="${item.category_icon} me-1"></i>${item.category}
+        <i class="${item.category_icon} me-1"></i>${categoryHtml}
       </span>`;
       
       const aliasBadge = item.type === 'alias' 
@@ -96,9 +161,9 @@
               </div>
               <h6 class="mb-1 text-dark fw-bold ${isMobile ? 'fs-6' : ''}">${titleHtml}</h6>
               ${item.type === 'alias' && item.main_keyword ? 
-                `<p class="text-muted small mb-1"><i class="bi bi-link-45deg me-1"></i>連結至：${item.main_keyword}</p>` : ''
+                `<p class="text-muted small mb-1"><i class="bi bi-link-45deg me-1"></i>連結至：${aliasTargetHtml}</p>` : ''
               }
-              ${!isMobile || results.length < 5 ? `<p class="text-muted small mb-0">${descriptionHtml}...</p>` : ''}
+              ${( !isMobile || results.length < 5 ) && shouldShowSnippet ? `<p class="text-muted small mb-0">${snippetHtml}</p>` : ''}
             </div>
             <div class="ms-2 ${isMobile ? 'ms-2' : 'ms-3'}">
               <i class="bi bi-chevron-right text-muted ${isMobile ? 'fs-6' : ''}"></i>

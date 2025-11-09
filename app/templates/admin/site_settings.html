@@ -160,6 +160,33 @@
                 {{ branding_form.header_logo_url.label(class_='form-label') }}
                 {{ branding_form.header_logo_url(class_='form-control', placeholder='https://...') }}
               </div>
+              
+              <hr class="my-3">
+              
+              <h6 class="fw-semibold mb-2">網站圖示 (Favicon)</h6>
+              
+              {% if current_favicon %}
+              <div class="alert alert-info mb-3">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div class="flex-grow-1">
+                    <small class="text-muted d-block mb-2">目前使用:</small>
+                    <img src="{{ current_favicon }}" alt="Favicon" style="max-height: 32px; max-width: 32px;" class="img-fluid bg-white p-1 border rounded">
+                    <small class="text-muted d-block mt-1">{{ current_favicon }}</small>
+                  </div>
+                  {% if current_favicon.startswith('/static/uploads/') %}
+                  <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="deleteFavicon()">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                  {% endif %}
+                </div>
+              </div>
+              {% endif %}
+              
+              <div class="mb-3">
+                {{ branding_form.favicon_file.label(class_='form-label') }}
+                {{ branding_form.favicon_file(class_='form-control', accept='.ico,.png') }}
+                <div class="form-text">建議使用 .ico 格式或 32x32 px 的 .png 圖片</div>
+              </div>
             </div>
 
             <div class="col-md-6">
@@ -474,6 +501,25 @@ function deleteLogo(type) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ type: type })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert(data.message);
+      location.reload();
+    } else {
+      alert('刪除失敗: ' + data.message);
+    }
+  });
+}
+
+function deleteFavicon() {
+  if (!confirm('確定要刪除網站圖示 (Favicon) 嗎？')) return;
+  
+  fetch('{{ url_for("admin.delete_favicon") }}', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'favicon' })
   })
   .then(response => response.json())
   .then(data => {

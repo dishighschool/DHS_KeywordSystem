@@ -79,6 +79,10 @@ class SiteBrandingForm(FlaskForm):
         "或上傳 Logo 圖片", 
         validators=[Optional(), FileAllowed(["png", "jpg", "jpeg", "gif", "svg", "webp"], "只允許上傳圖片檔案")]
     )
+    favicon_file = FileField(
+        "網站圖示 (Favicon)", 
+        validators=[Optional(), FileAllowed(["ico", "png"], "只允許上傳 .ico 或 .png 檔案")]
+    )
     footer_copy = StringField("底部版權文字", validators=[Optional(), Length(max=255)])
     submit = SubmitField("更新品牌設定")
 
