@@ -28,6 +28,8 @@ ENV/
 Thumbs.db
 
 # Flask/Instance
+instance/*.db
+instance/*.sqlite3
 instance/
 
 # Migrations

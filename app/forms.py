@@ -14,8 +14,19 @@ from wtforms import (
     SubmitField,
     TextAreaField,
     URLField,
+    ValidationError,
 )
-from wtforms.validators import DataRequired, Length, NumberRange, Optional, URL
+from wtforms.validators import DataRequired, Length, NumberRange, Optional, URL, ValidationError as WTFormsValidationError
+
+
+def validate_youtube_url(form, field):
+    """驗證是否為有效的 YouTube URL"""
+    if not field.data:
+        return  # 如果是空的，由 Optional() 處理
+    
+    from .utils.youtube import extract_youtube_video_id
+    if not extract_youtube_video_id(field.data):
+        raise ValidationError('必須是有效的 YouTube 影片連結')
 
 
 class CategoryForm(FlaskForm):
@@ -74,7 +85,7 @@ class SiteBrandingForm(FlaskForm):
 
 class YouTubeVideoForm(FlaskForm):
     title = StringField("影片標題", validators=[Optional(), Length(max=200)])
-    url = URLField("影片連結", validators=[Optional(), URL()])
+    url = URLField("影片連結", validators=[Optional(), URL(), validate_youtube_url])
 
 
 class KeywordAliasForm(FlaskForm):

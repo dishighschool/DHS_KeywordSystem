@@ -136,7 +136,10 @@ def keyword_detail(category_slug: str, slug: str):
             db.session.commit()
             
             # Convert markdown and link keywords
-            html_description = markdown(keyword.description_markdown, extras=["fenced-code-blocks"])  # noqa: S607
+            # Ensure any HTML entities in stored markdown (e.g. &lt;, &#124;) are unescaped
+            # before converting to HTML so markdown features like tables parse
+            # correctly.
+            html_description = markdown(unescape(keyword.description_markdown or ""), extras=["fenced-code-blocks", "tables", "strikethrough", "task_lists"], safe_mode="escape")  # noqa: S607
             html_description = keyword_linker.link_keywords_in_html(html_description, current_keyword_id=keyword.id)
             
             # Get related keywords (public only)
@@ -213,8 +216,9 @@ def keyword_detail(category_slug: str, slug: str):
     keyword.view_count += 1
     db.session.commit()
 
-    # Convert markdown to HTML
-    html_description = markdown(keyword.description_markdown, extras=["fenced-code-blocks"])  # noqa: S607
+    # Convert markdown to HTML (unescape stored HTML entities first so
+    # markdown tables and other block-level syntax render correctly)
+    html_description = markdown(unescape(keyword.description_markdown or ""), extras=["fenced-code-blocks", "tables", "strikethrough", "task_lists"], safe_mode="escape")  # noqa: S607
     
     # Auto-link other keywords in the content
     html_description = keyword_linker.link_keywords_in_html(html_description, current_keyword_id=keyword.id)
@@ -328,7 +332,9 @@ def api_search():
     # Add keywords
     for keyword in keywords:
         # Convert markdown to plain text for description
-        description_html = markdown(keyword.description_markdown or "", extras=["fenced-code-blocks"])
+        # Unescape stored entities before converting to plain HTML for
+        # description extraction used in the search index.
+        description_html = markdown(unescape(keyword.description_markdown or ""), extras=["fenced-code-blocks", "tables", "strikethrough", "task_lists"], safe_mode="escape")
         description_text = unescape(re.sub(r'<[^>]+>', '', description_html))
         
         search_data.append({
@@ -345,7 +351,7 @@ def api_search():
     
     # Add aliases
     for alias in aliases:
-        description_html = markdown(alias.keyword.description_markdown or "", extras=["fenced-code-blocks"])
+        description_html = markdown(unescape(alias.keyword.description_markdown or ""), extras=["fenced-code-blocks", "tables", "strikethrough", "task_lists"], safe_mode="escape")
         description_text = unescape(re.sub(r'<[^>]+>', '', description_html))
         
         search_data.append({

@@ -63,10 +63,16 @@
         <a href="#section-basic" class="editor-nav-item active" data-section="basic">
           <i class="bi bi-file-text"></i>
           <span>基本資訊</span>
+          <span class="nav-required-badge" title="此分頁含必填欄位" style="display: none;">
+            <i class="bi bi-exclamation-circle-fill"></i>
+          </span>
         </a>
         <a href="#section-content" class="editor-nav-item" data-section="content">
           <i class="bi bi-card-text"></i>
           <span>內容描述</span>
+          <span class="nav-required-badge" title="此分頁含必填欄位" style="display: none;">
+            <i class="bi bi-exclamation-circle-fill"></i>
+          </span>
         </a>
         <a href="#section-videos" class="editor-nav-item" data-section="videos">
           <i class="bi bi-play-circle"></i>
@@ -91,17 +97,24 @@
 
     
     <div class="editor-content">
-      {# 如果是從目標清單來的,顯示提示 #}
-      {% if goal_item %}
-      <div class="alert alert-info alert-dismissible fade show m-3" role="alert">
-        <i class="bi bi-list-check me-2"></i>
-        <strong>從目標清單創建:</strong> 此關鍵字來自目標清單「{{ goal_item.goal_list.name }}」。
-        完成創建後將自動標記為已完成並返回清單頁面。
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
-      {% endif %}
-      
-      <form id="keywordForm" method="POST" action="{% if is_creating %}{{ url_for('admin.store_keyword') }}{% else %}{{ url_for('admin.save_keyword_editor', keyword_id=keyword.id) }}{% endif %}">
+        
+        {# 必填欄位提示 #}
+        <div class="alert alert-warning alert-dismissible fade show m-3" role="alert" id="required-fields-alert" style="display: none;">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          <strong>請填寫必要欄位:</strong>
+          <div id="required-fields-list" style="margin-top: 8px; font-size: 0.95em;"></div>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        {# 如果是從目標清單來的,顯示提示 #}
+        {% if goal_item %}
+        <div class="alert alert-info alert-dismissible fade show m-3" role="alert">
+          <i class="bi bi-list-check me-2"></i>
+          <strong>從目標清單創建:</strong> 此關鍵字來自目標清單「{{ goal_item.goal_list.name }}」。
+          完成創建後將自動標記為已完成並返回清單頁面。
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %}      <form id="keywordForm" method="POST" action="{% if is_creating %}{{ url_for('admin.store_keyword') }}{% else %}{{ url_for('admin.save_keyword_editor', keyword_id=keyword.id) }}{% endif %}">
         {{ form.hidden_tag() }}
         
         {# 如果是從目標清單來的,保存目標項目 ID #}
@@ -118,21 +131,39 @@
           <div class="section-body">
             <div class="form-group">
               <label for="title" class="form-label">
-                標題 <span class="text-danger">*</span>
+                標題
+                <span class="text-danger fw-bold" title="必填欄位">*</span>
+                <span class="ms-2 badge bg-danger-light text-danger">必填</span>
               </label>
-              {{ form.title(class="form-control form-control-lg", id="title", placeholder="輸入關鍵字標題") }}
+              {{ form.title(class="form-control form-control-lg required-field", id="title", placeholder="輸入關鍵字標題", data_required="title") }}
+              <small class="form-text text-muted d-block mt-1">
+                <i class="bi bi-info-circle me-1"></i>
+                不能為空,且需要至少1個字符
+              </small>
               {% if form.title.errors %}
-                <div class="invalid-feedback d-block">{{ form.title.errors[0] }}</div>
+                <div class="invalid-feedback d-block mt-2">
+                  <i class="bi bi-exclamation-circle me-1"></i>
+                  {{ form.title.errors[0] }}
+                </div>
               {% endif %}
             </div>
 
             <div class="form-group">
               <label for="category_id" class="form-label">
-                分類 <span class="text-danger">*</span>
+                分類
+                <span class="text-danger fw-bold" title="必填欄位">*</span>
+                <span class="ms-2 badge bg-danger-light text-danger">必填</span>
               </label>
-              {{ form.category_id(class="form-select", id="category_id") }}
+              {{ form.category_id(class="form-select form-select-lg required-field", id="category_id", data_required="category") }}
+              <small class="form-text text-muted d-block mt-1">
+                <i class="bi bi-info-circle me-1"></i>
+                請選擇關鍵字所屬分類
+              </small>
               {% if form.category_id.errors %}
-                <div class="invalid-feedback d-block">{{ form.category_id.errors[0] }}</div>
+                <div class="invalid-feedback d-block mt-2">
+                  <i class="bi bi-exclamation-circle me-1"></i>
+                  {{ form.category_id.errors[0] }}
+                </div>
               {% endif %}
             </div>
 
@@ -142,8 +173,11 @@
         
         <div id="section-content" class="editor-section">
           <div class="section-header">
-            <h2 class="section-title">內容描述</h2>
-            <p class="section-description">使用 Markdown 格式撰寫詳細說明</p>
+            <h2 class="section-title">
+              內容描述
+              <span class="text-danger fw-bold" title="必填欄位">*</span>
+            </h2>
+            <p class="section-description">使用 Markdown 格式撰寫詳細說明 - <span class="text-danger">必填</span></p>
             <div class="section-header-actions">
               <div class="btn-group btn-group-sm" role="group">
                 <input type="radio" class="btn-check" name="markdown-mode" id="mode-edit" checked autocomplete="off">
@@ -231,14 +265,25 @@
             </div>
 
             
-            <div class="markdown-editor-container" id="markdown-container">
+            <div class="markdown-editor-container has-required-field" id="markdown-container">
               <div class="markdown-editor-pane">
-                {{ form.description_markdown(class="form-control markdown-textarea", id="description_markdown", placeholder="# 開始編寫內容\n\n支援完整 Markdown 語法...") }}
+                {{ form.description_markdown(class="form-control markdown-textarea required-field", id="description_markdown", placeholder="# 開始編寫內容\n\n支援完整 Markdown 語法...", data_required="content") }}
               </div>
               <div class="markdown-preview-pane" id="markdown-preview">
                 <div class="preview-content"></div>
               </div>
             </div>
+            {% if form.description_markdown.errors %}
+              <div class="invalid-feedback d-block mt-2">
+                <i class="bi bi-exclamation-circle me-1"></i>
+                {{ form.description_markdown.errors[0] }}
+              </div>
+            {% endif %}
+
+            <small class="form-text text-muted d-block mt-2">
+              <i class="bi bi-info-circle me-1"></i>
+              請輸入內容說明
+            </small>
 
             
             <div class="markdown-stats mt-2">
@@ -272,10 +317,16 @@
                     <div class="col-md-6">
                       <label class="form-label">YouTube 網址</label>
                       {{ video_form.url(class="form-control", placeholder="https://www.youtube.com/watch?v=...") }}
+                      {% if video_form.url.errors %}
+                        <div class="invalid-feedback d-block">{{ video_form.url.errors[0] }}</div>
+                      {% endif %}
                     </div>
                     <div class="col-md-6">
                       <label class="form-label">影片標題</label>
                       {{ video_form.title(class="form-control", placeholder="影片標題") }}
+                      {% if video_form.title.errors %}
+                        <div class="invalid-feedback d-block">{{ video_form.title.errors[0] }}</div>
+                      {% endif %}
                     </div>
                   </div>
                 </div>
@@ -305,6 +356,9 @@
                     <i class="bi bi-x-lg"></i>
                   </button>
                 </div>
+                {% if alias_form.title.errors %}
+                  <div class="invalid-feedback d-block">{{ alias_form.title.errors[0] }}</div>
+                {% endif %}
               </div>
               {% endfor %}
             </div>
@@ -338,6 +392,9 @@
                 <label for="seo_content" class="form-label">自訂 SEO 內容 (HTML)</label>
                 {{ form.seo_content(class="form-control", id="seo_content", rows="8") }}
                 <small class="form-text text-muted">支援 HTML 標籤</small>
+                {% if form.seo_content.errors %}
+                  <div class="invalid-feedback d-block">{{ form.seo_content.errors[0] }}</div>
+                {% endif %}
               </div>
             </div>
 
@@ -409,6 +466,9 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+
+<!-- DOMPurify 庫,用於防止 XSS 攻擊 -->
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
 
 <script src="{{ url_for('static', filename='js/keyword-editor.js') }}"></script>
 <script>

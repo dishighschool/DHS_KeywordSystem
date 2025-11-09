@@ -499,7 +499,54 @@ document.addEventListener('DOMContentLoaded', function() {
         image: ['![', '](https://)'],
         table: ['', '\n\n| 欄位 1 | 欄位 2 | 欄位 3 |\n| ------ | ------ | ------ |\n| 文字   | 文字   | 文字   |\n\n'],
       },
-      previewRender: function(plainText) {
+      previewRender: function(plainText, preview) {
+        // 使用後端 API 進行 markdown 渲染，確保與前端顯示完全一致
+        // 包含 unescape 處理和完整的 tables、code blocks 等支援
+        
+        const previewElement = preview;
+        
+        // 非同步呼叫後端 API 更新預覽
+        if (previewElement && plainText) {
+          const csrfToken = document.querySelector('input[name="csrf_token"]');
+          const headers = {
+            'Content-Type': 'application/json'
+          };
+          
+          // 如果有 CSRF token 就加上
+          if (csrfToken) {
+            headers['X-CSRFToken'] = csrfToken.value;
+          }
+          
+          fetch('{{ url_for("admin.markdown_preview") }}', {
+            method: 'POST',
+            headers: headers,
+            credentials: 'same-origin',
+            body: JSON.stringify({ markdown: plainText })
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('HTTP ' + response.status);
+            }
+            return response.json();
+          })
+          .then(data => {
+            if (data.success && data.html) {
+              previewElement.innerHTML = data.html;
+            } else if (data.error) {
+              console.error('Markdown preview API error:', data.error);
+              // 如果 API 失敗，回退到內建渲染
+              previewElement.innerHTML = this.parent.markdown(plainText);
+            }
+          })
+          .catch(error => {
+            console.error('Markdown preview fetch error:', error);
+            // 如果請求失敗，使用內建渲染器
+            previewElement.innerHTML = this.parent.markdown(plainText);
+          });
+        }
+        
+        // 立即返回內建處理結果（EasyMDE 的預設 markdown 渲染）
+        // API 請求完成後會用後端的結果覆蓋此內容
         return this.parent.markdown(plainText);
       },
       minHeight: '400px',
