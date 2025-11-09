@@ -42,6 +42,12 @@ class Config:
 
     SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "learning_keywords_session")
     PREFERRED_URL_SCHEME = os.getenv("PREFERRED_URL_SCHEME", "https")
+    USE_PROXY_FIX = os.getenv("USE_PROXY_FIX", "1") not in {"0", "false", "False"}
+    PROXY_FIX_FOR = int(os.getenv("PROXY_FIX_FOR", "1"))
+    PROXY_FIX_PROTO = int(os.getenv("PROXY_FIX_PROTO", "1"))
+    PROXY_FIX_HOST = int(os.getenv("PROXY_FIX_HOST", "1"))
+    PROXY_FIX_PORT = int(os.getenv("PROXY_FIX_PORT", "1"))
+    PROXY_FIX_PREFIX = int(os.getenv("PROXY_FIX_PREFIX", "0"))
 
     SECURITY_PASSWORD_SALT = os.getenv("SECURITY_PASSWORD_SALT", "replace-this")
 

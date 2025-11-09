@@ -11,6 +11,7 @@ from flask import Flask, current_app, jsonify, request
 from flask_migrate import upgrade
 from sqlalchemy import inspect
 from sqlalchemy.exc import OperationalError
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import Config
 from .extensions import csrf, db, login_manager, migrate, oauth
@@ -27,6 +28,7 @@ def create_app(config_object: type[Config] | None = None) -> Flask:
     config_object = config_object or Config
     app.config.from_object(config_object)
 
+    _apply_proxy_fix(app)
     _ensure_instance_folder(app)
     _register_extensions(app)
     _register_sitemap_manager(app)
@@ -65,6 +67,21 @@ def _register_extensions(app: Flask) -> None:
     from .auth.discord import register_discord_oauth
 
     register_discord_oauth(app, oauth)
+
+
+def _apply_proxy_fix(app: Flask) -> None:
+    """Trust proxy headers so generated URLs reflect the public scheme."""
+    if not app.config.get("USE_PROXY_FIX", True):
+        return
+
+    app.wsgi_app = ProxyFix(  # type: ignore[assignment]
+        app.wsgi_app,
+        x_for=app.config.get("PROXY_FIX_FOR", 1),
+        x_proto=app.config.get("PROXY_FIX_PROTO", 1),
+        x_host=app.config.get("PROXY_FIX_HOST", 1),
+        x_port=app.config.get("PROXY_FIX_PORT", 1),
+        x_prefix=app.config.get("PROXY_FIX_PREFIX", 0),
+    )
 
 
 def _register_sitemap_manager(app: Flask) -> None:
