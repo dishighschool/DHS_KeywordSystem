@@ -526,6 +526,9 @@ input[type="search"]:focus {
   transition: background-color var(--md-sys-motion-duration-short-4) var(--md-sys-motion-easing-standard);
   overflow: hidden;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .navbar-nav .nav-link::before {
@@ -1105,12 +1108,20 @@ input[type="search"]:focus {
 
 @media (min-width: 1025px) {
   #mobileSearchBtn {
-    display: none !important;
+    display: block !important;
   }
 }
 
 .mobile-search-modal {
   display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1060;
+  background: var(--md-sys-color-surface);
+  flex-direction: column;
 }
 
 @media (max-width: 1024px) {
@@ -1296,7 +1307,7 @@ mark {
     height: 36px;
   }
   .navbar-nav .nav-link {
-    padding: 12px 0;
+    padding: 12px 16px;
     font-size: 16px;
   }
   .navbar-collapse {

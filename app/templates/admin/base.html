@@ -501,6 +501,10 @@
                     <div class="sidebar-menu-icon"><i class="bi bi-clock-history"></i></div>
                     <div>編輯日誌</div>
                 </a>
+                <a href="{{ url_for('admin.data_management') }}" class="sidebar-menu-item {% if request.endpoint == 'admin.data_management' %}active{% endif %}">
+                    <div class="sidebar-menu-icon"><i class="bi bi-database"></i></div>
+                    <div>資料管理</div>
+                </a>
                 
                 <div class="sidebar-menu-title">SEO 工具</div>
                 <a href="{{ url_for('admin.manage_sitemap') }}" class="sidebar-menu-item {% if request.endpoint == 'admin.manage_sitemap' %}active{% endif %}">

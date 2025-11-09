@@ -23,6 +23,7 @@ from ..forms import (
 )
 from ..models import (
     AnnouncementBanner,
+    EditLog,
     FooterSocialLink,
     KeywordAlias,
     KeywordCategory,
@@ -2076,4 +2077,556 @@ def delete_goal_item(item_id: int):
     db.session.commit()
     
     return jsonify({"success": True, "message": f"已刪除項目「{item_title}」"})
+
+
+# ============================================================================
+# 系統資料匯出/匯入功能
+# ============================================================================
+
+@admin_bp.route("/data-management")
+@admin_required
+def data_management():
+    """資料管理頁面 - 匯出/匯入系統資料"""
+    # 統計資料
+    stats = {
+        'users': User.query.count(),
+        'categories': KeywordCategory.query.count(),
+        'keywords': LearningKeyword.query.count(),
+        'aliases': KeywordAlias.query.count(),
+        'videos': YouTubeVideo.query.count(),
+        'nav_links': NavigationLink.query.count(),
+        'footer_links': FooterSocialLink.query.count(),
+        'announcements': AnnouncementBanner.query.count(),
+        'site_settings': SiteSetting.query.count(),
+        'goal_lists': KeywordGoalList.query.count(),
+        'goal_items': KeywordGoalItem.query.count(),
+        'edit_logs': db.session.query(EditLog).count(),
+    }
+    
+    return render_template('admin/data_management.html', stats=stats)
+
+
+@admin_bp.get("/data-management/export")
+@admin_required
+def export_system_data():
+    """匯出完整系統資料為 JSON"""
+    from flask import make_response, jsonify as flask_jsonify
+    import json
+    from datetime import datetime
+    
+    try:
+        # 收集所有資料
+        data = {
+            'export_info': {
+                'version': '1.0',
+                'exported_at': datetime.utcnow().isoformat(),
+                'exported_by': current_user.username,
+                'exported_by_id': current_user.id,
+            },
+            'users': [],
+            'categories': [],
+            'keywords': [],
+            'aliases': [],
+            'videos': [],
+            'navigation_links': [],
+            'footer_links': [],
+            'announcements': [],
+            'site_settings': [],
+            'goal_lists': [],
+            'goal_items': [],
+        }
+        
+        # 匯出用戶 (不包含敏感資訊)
+        for user in User.query.all():
+            data['users'].append({
+                'id': user.id,
+                'discord_id': user.discord_id,
+                'username': user.username,
+                'avatar_hash': user.avatar_hash,
+                'role': user.role.value,
+                'is_active': user.is_active,
+                'created_at': user.created_at.isoformat(),
+            })
+        
+        # 匯出分類
+        for category in KeywordCategory.query.order_by(KeywordCategory.position).all():
+            data['categories'].append({
+                'id': category.id,
+                'name': category.name,
+                'slug': category.slug,
+                'description': category.description,
+                'position': category.position,
+                'icon': category.icon,
+                'is_public': category.is_public,
+                'created_at': category.created_at.isoformat(),
+            })
+        
+        # 匯出關鍵字
+        for keyword in LearningKeyword.query.order_by(LearningKeyword.category_id, LearningKeyword.position).all():
+            data['keywords'].append({
+                'id': keyword.id,
+                'title': keyword.title,
+                'slug': keyword.slug,
+                'description_markdown': keyword.description_markdown,
+                'position': keyword.position,
+                'is_public': keyword.is_public,
+                'view_count': keyword.view_count,
+                'seo_content': keyword.seo_content,
+                'seo_auto_generate': keyword.seo_auto_generate,
+                'category_id': keyword.category_id,
+                'author_id': keyword.author_id,
+                'created_at': keyword.created_at.isoformat(),
+                'updated_at': keyword.updated_at.isoformat(),
+            })
+        
+        # 匯出別名
+        for alias in KeywordAlias.query.all():
+            data['aliases'].append({
+                'id': alias.id,
+                'keyword_id': alias.keyword_id,
+                'title': alias.title,
+                'slug': alias.slug,
+                'created_at': alias.created_at.isoformat(),
+            })
+        
+        # 匯出影片
+        for video in YouTubeVideo.query.all():
+            data['videos'].append({
+                'id': video.id,
+                'keyword_id': video.keyword_id,
+                'title': video.title,
+                'url': video.url,
+                'created_at': video.created_at.isoformat(),
+            })
+        
+        # 匯出導航連結
+        for nav in NavigationLink.query.order_by(NavigationLink.position).all():
+            data['navigation_links'].append({
+                'id': nav.id,
+                'label': nav.label,
+                'url': nav.url,
+                'icon': nav.icon,
+                'position': nav.position,
+                'created_at': nav.created_at.isoformat(),
+            })
+        
+        # 匯出底部連結
+        for footer in FooterSocialLink.query.order_by(FooterSocialLink.position).all():
+            data['footer_links'].append({
+                'id': footer.id,
+                'label': footer.label,
+                'url': footer.url,
+                'icon': footer.icon,
+                'position': footer.position,
+                'created_at': footer.created_at.isoformat(),
+            })
+        
+        # 匯出公告橫幅
+        for announcement in AnnouncementBanner.query.order_by(AnnouncementBanner.position).all():
+            data['announcements'].append({
+                'id': announcement.id,
+                'text': announcement.text,
+                'url': announcement.url,
+                'icon': announcement.icon,
+                'is_active': announcement.is_active,
+                'position': announcement.position,
+                'created_at': announcement.created_at.isoformat(),
+            })
+        
+        # 匯出網站設定
+        for setting in SiteSetting.query.all():
+            data['site_settings'].append({
+                'key': setting.key,
+                'value': setting.value,
+                'updated_at': setting.updated_at.isoformat(),
+            })
+        
+        # 匯出目標清單
+        for goal_list in KeywordGoalList.query.all():
+            data['goal_lists'].append({
+                'id': goal_list.id,
+                'name': goal_list.name,
+                'description': goal_list.description,
+                'category_name': goal_list.category_name,
+                'is_active': goal_list.is_active,
+                'created_by': goal_list.created_by,
+                'created_at': goal_list.created_at.isoformat(),
+            })
+        
+        # 匯出目標項目
+        for goal_item in KeywordGoalItem.query.all():
+            data['goal_items'].append({
+                'id': goal_item.id,
+                'goal_list_id': goal_item.goal_list_id,
+                'title': goal_item.title,
+                'position': goal_item.position,
+                'is_completed': goal_item.is_completed,
+                'keyword_id': goal_item.keyword_id,
+                'completed_by': goal_item.completed_by,
+                'completed_at': goal_item.completed_at.isoformat() if goal_item.completed_at else None,
+                'created_at': goal_item.created_at.isoformat(),
+            })
+        
+        # 生成檔案
+        json_data = json.dumps(data, ensure_ascii=False, indent=2)
+        
+        # 創建回應
+        response = make_response(json_data)
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        response.headers['Content-Disposition'] = f'attachment; filename=system_data_export_{datetime.utcnow().strftime("%Y%m%d_%H%M%S")}.json'
+        
+        flash('系統資料已匯出', 'success')
+        return response
+        
+    except Exception as e:
+        current_app.logger.error(f"Export error: {e}")
+        flash(f'匯出失敗: {str(e)}', 'danger')
+        return redirect(url_for('admin.data_management'))
+
+
+@admin_bp.route("/data-management/import", methods=["POST"])
+@admin_required
+def import_system_data():
+    """匯入系統資料"""
+    import json
+    from datetime import datetime
+    
+    # 檢查是否有檔案
+    if 'import_file' not in request.files:
+        flash('請選擇要匯入的檔案', 'danger')
+        return redirect(url_for('admin.data_management'))
+    
+    file = request.files['import_file']
+    
+    if not file or file.filename == '':
+        flash('未選擇檔案', 'danger')
+        return redirect(url_for('admin.data_management'))
+    
+    if not file.filename or not file.filename.endswith('.json'):
+        flash('只能匯入 JSON 檔案', 'danger')
+        return redirect(url_for('admin.data_management'))
+    
+    # 讀取並解析檔案
+    try:
+        content = file.read().decode('utf-8')
+        data = json.loads(content)
+    except json.JSONDecodeError as e:
+        flash(f'JSON 格式錯誤: {str(e)}', 'danger')
+        return redirect(url_for('admin.data_management'))
+    except Exception as e:
+        flash(f'讀取檔案失敗: {str(e)}', 'danger')
+        return redirect(url_for('admin.data_management'))
+    
+    # 驗證資料格式
+    if 'export_info' not in data:
+        flash('無效的匯出檔案格式', 'danger')
+        return redirect(url_for('admin.data_management'))
+    
+    # 取得匯入選項
+    import_mode = request.form.get('import_mode', 'merge')  # merge 或 replace
+    import_users = 'import_users' in request.form
+    import_categories = 'import_categories' in request.form
+    import_keywords = 'import_keywords' in request.form
+    import_settings = 'import_settings' in request.form
+    import_navigation = 'import_navigation' in request.form
+    import_goals = 'import_goals' in request.form
+    
+    try:
+        # 開始資料庫事務
+        stats = {
+            'users': 0,
+            'categories': 0,
+            'keywords': 0,
+            'aliases': 0,
+            'videos': 0,
+            'navigation': 0,
+            'footer': 0,
+            'announcements': 0,
+            'settings': 0,
+            'goals': 0,
+        }
+        
+        # ID 映射 (舊 ID -> 新 ID)
+        user_id_map = {}
+        category_id_map = {}
+        keyword_id_map = {}
+        goal_list_id_map = {}
+        
+        # 匯入用戶
+        if import_users and 'users' in data:
+            for user_data in data['users']:
+                # 檢查用戶是否已存在
+                existing = User.query.filter_by(discord_id=user_data['discord_id']).first()
+                
+                if import_mode == 'replace' and existing:
+                    # 更新現有用戶
+                    existing.username = user_data['username']
+                    existing.avatar_hash = user_data.get('avatar_hash')
+                    existing.role = Role(user_data['role'])
+                    existing.is_active = user_data['is_active']
+                    user_id_map[user_data['id']] = existing.id
+                    stats['users'] += 1
+                elif not existing:
+                    # 創建新用戶
+                    new_user = User(
+                        discord_id=user_data['discord_id'],
+                        username=user_data['username'],
+                        avatar_hash=user_data.get('avatar_hash'),
+                        role=Role(user_data['role']),
+                        active=user_data['is_active'],
+                    )
+                    db.session.add(new_user)
+                    db.session.flush()
+                    user_id_map[user_data['id']] = new_user.id
+                    stats['users'] += 1
+                else:
+                    # merge 模式且已存在,只記錄 ID 映射
+                    user_id_map[user_data['id']] = existing.id
+        
+        # 匯入分類
+        if import_categories and 'categories' in data:
+            for cat_data in data['categories']:
+                existing = KeywordCategory.query.filter_by(slug=cat_data['slug']).first()
+                
+                if import_mode == 'replace' and existing:
+                    existing.name = cat_data['name']
+                    existing.description = cat_data.get('description')
+                    existing.position = cat_data['position']
+                    existing.icon = cat_data['icon']
+                    existing.is_public = cat_data['is_public']
+                    category_id_map[cat_data['id']] = existing.id
+                    stats['categories'] += 1
+                elif not existing:
+                    new_category = KeywordCategory(
+                        name=cat_data['name'],
+                        slug=cat_data['slug'],
+                        description=cat_data.get('description'),
+                        position=cat_data['position'],
+                        icon=cat_data['icon'],
+                        is_public=cat_data['is_public'],
+                    )
+                    db.session.add(new_category)
+                    db.session.flush()
+                    category_id_map[cat_data['id']] = new_category.id
+                    stats['categories'] += 1
+                else:
+                    category_id_map[cat_data['id']] = existing.id
+        
+        # 匯入關鍵字
+        if import_keywords and 'keywords' in data:
+            for kw_data in data['keywords']:
+                # 檢查關聯的分類和作者是否存在
+                category_id = category_id_map.get(kw_data['category_id'])
+                author_id = user_id_map.get(kw_data['author_id'], current_user.id)
+                
+                if not category_id:
+                    continue  # 跳過沒有分類的關鍵字
+                
+                existing = LearningKeyword.query.filter_by(slug=kw_data['slug']).first()
+                
+                if import_mode == 'replace' and existing:
+                    existing.title = kw_data['title']
+                    existing.description_markdown = kw_data['description_markdown']
+                    existing.position = kw_data['position']
+                    existing.is_public = kw_data['is_public']
+                    existing.seo_content = kw_data.get('seo_content')
+                    existing.seo_auto_generate = kw_data['seo_auto_generate']
+                    existing.category_id = category_id
+                    existing.author_id = author_id
+                    keyword_id_map[kw_data['id']] = existing.id
+                    stats['keywords'] += 1
+                elif not existing:
+                    new_keyword = LearningKeyword(
+                        title=kw_data['title'],
+                        slug=kw_data['slug'],
+                        description_markdown=kw_data['description_markdown'],
+                        position=kw_data['position'],
+                        is_public=kw_data['is_public'],
+                        view_count=kw_data.get('view_count', 0),
+                        seo_content=kw_data.get('seo_content'),
+                        seo_auto_generate=kw_data['seo_auto_generate'],
+                        category_id=category_id,
+                        author_id=author_id,
+                    )
+                    db.session.add(new_keyword)
+                    db.session.flush()
+                    keyword_id_map[kw_data['id']] = new_keyword.id
+                    stats['keywords'] += 1
+                else:
+                    keyword_id_map[kw_data['id']] = existing.id
+            
+            # 匯入別名
+            if 'aliases' in data:
+                for alias_data in data['aliases']:
+                    keyword_id = keyword_id_map.get(alias_data['keyword_id'])
+                    if not keyword_id:
+                        continue
+                    
+                    existing = KeywordAlias.query.filter_by(slug=alias_data['slug']).first()
+                    if not existing:
+                        new_alias = KeywordAlias(
+                            keyword_id=keyword_id,
+                            title=alias_data['title'],
+                            slug=alias_data['slug'],
+                        )
+                        db.session.add(new_alias)
+                        stats['aliases'] += 1
+            
+            # 匯入影片
+            if 'videos' in data:
+                for video_data in data['videos']:
+                    keyword_id = keyword_id_map.get(video_data['keyword_id'])
+                    if not keyword_id:
+                        continue
+                    
+                    # 檢查是否已存在相同的影片
+                    existing = YouTubeVideo.query.filter_by(
+                        keyword_id=keyword_id,
+                        url=video_data['url']
+                    ).first()
+                    
+                    if not existing:
+                        new_video = YouTubeVideo(
+                            keyword_id=keyword_id,
+                            title=video_data['title'],
+                            url=video_data['url'],
+                        )
+                        db.session.add(new_video)
+                        stats['videos'] += 1
+        
+        # 匯入導航連結
+        if import_navigation and 'navigation_links' in data:
+            if import_mode == 'replace':
+                # 刪除所有現有導航連結
+                NavigationLink.query.delete()
+            
+            for nav_data in data['navigation_links']:
+                new_nav = NavigationLink(
+                    label=nav_data['label'],
+                    url=nav_data['url'],
+                    icon=nav_data.get('icon'),
+                    position=nav_data['position'],
+                )
+                db.session.add(new_nav)
+                stats['navigation'] += 1
+        
+        # 匯入底部連結
+        if import_navigation and 'footer_links' in data:
+            if import_mode == 'replace':
+                FooterSocialLink.query.delete()
+            
+            for footer_data in data['footer_links']:
+                new_footer = FooterSocialLink(
+                    label=footer_data['label'],
+                    url=footer_data['url'],
+                    icon=footer_data.get('icon'),
+                    position=footer_data['position'],
+                )
+                db.session.add(new_footer)
+                stats['footer'] += 1
+        
+        # 匯入公告橫幅
+        if import_navigation and 'announcements' in data:
+            if import_mode == 'replace':
+                AnnouncementBanner.query.delete()
+            
+            for ann_data in data['announcements']:
+                new_announcement = AnnouncementBanner(
+                    text=ann_data['text'],
+                    url=ann_data.get('url'),
+                    icon=ann_data['icon'],
+                    is_active=ann_data['is_active'],
+                    position=ann_data['position'],
+                )
+                db.session.add(new_announcement)
+                stats['announcements'] += 1
+        
+        # 匯入網站設定
+        if import_settings and 'site_settings' in data:
+            for setting_data in data['site_settings']:
+                try:
+                    key = SiteSettingKey(setting_data['key'])
+                    SiteSetting.set(key, setting_data['value'])
+                    stats['settings'] += 1
+                except ValueError:
+                    # 跳過無效的設定鍵
+                    pass
+        
+        # 匯入目標清單
+        if import_goals and 'goal_lists' in data:
+            for goal_data in data['goal_lists']:
+                created_by = user_id_map.get(goal_data['created_by'], current_user.id)
+                
+                new_goal = KeywordGoalList(
+                    name=goal_data['name'],
+                    description=goal_data.get('description'),
+                    category_name=goal_data['category_name'],
+                    is_active=goal_data['is_active'],
+                    created_by=created_by,
+                )
+                db.session.add(new_goal)
+                db.session.flush()
+                goal_list_id_map[goal_data['id']] = new_goal.id
+                stats['goals'] += 1
+            
+            # 匯入目標項目
+            if 'goal_items' in data:
+                for item_data in data['goal_items']:
+                    goal_list_id = goal_list_id_map.get(item_data['goal_list_id'])
+                    if not goal_list_id:
+                        continue
+                    
+                    keyword_id = keyword_id_map.get(item_data['keyword_id']) if item_data.get('keyword_id') else None
+                    completed_by = user_id_map.get(item_data['completed_by']) if item_data.get('completed_by') else None
+                    
+                    new_item = KeywordGoalItem(
+                        goal_list_id=goal_list_id,
+                        title=item_data['title'],
+                        position=item_data['position'],
+                        is_completed=item_data['is_completed'],
+                        keyword_id=keyword_id,
+                        completed_by=completed_by,
+                        completed_at=datetime.fromisoformat(item_data['completed_at']) if item_data.get('completed_at') else None,
+                    )
+                    db.session.add(new_item)
+        
+        # 提交事務
+        db.session.commit()
+        
+        # 顯示匯入統計
+        summary = []
+        if stats['users'] > 0:
+            summary.append(f"{stats['users']} 個用戶")
+        if stats['categories'] > 0:
+            summary.append(f"{stats['categories']} 個分類")
+        if stats['keywords'] > 0:
+            summary.append(f"{stats['keywords']} 個關鍵字")
+        if stats['aliases'] > 0:
+            summary.append(f"{stats['aliases']} 個別名")
+        if stats['videos'] > 0:
+            summary.append(f"{stats['videos']} 個影片")
+        if stats['navigation'] > 0:
+            summary.append(f"{stats['navigation']} 個導航連結")
+        if stats['footer'] > 0:
+            summary.append(f"{stats['footer']} 個底部連結")
+        if stats['announcements'] > 0:
+            summary.append(f"{stats['announcements']} 個公告")
+        if stats['settings'] > 0:
+            summary.append(f"{stats['settings']} 個設定")
+        if stats['goals'] > 0:
+            summary.append(f"{stats['goals']} 個目標清單")
+        
+        flash(f"匯入成功! 已匯入: {', '.join(summary)}", 'success')
+        
+        # 清除 sitemap 緩存
+        from ..sitemap import sitemap_manager
+        sitemap_manager.invalidate_cache()
+        
+        return redirect(url_for('admin.data_management'))
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Import error: {e}")
+        flash(f'匯入失敗: {str(e)}', 'danger')
+        return redirect(url_for('admin.data_management'))
 

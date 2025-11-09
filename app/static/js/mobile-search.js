@@ -8,9 +8,11 @@ document.addEventListener('DOMContentLoaded', function() {
   const mobileSearchResultsList = document.getElementById('mobileSearchResultsList');
   const mobileSearchLoading = document.getElementById('mobileSearchLoading');
   
-  if (!mobileSearchBtn || !mobileSearchModal) {
+  if (!mobileSearchBtn || !mobileSearchModal || !closeMobileSearch) {
+    console.error('Mobile search elements not found', {
       mobileSearchBtn: !!mobileSearchBtn,
-      mobileSearchModal: !!mobileSearchModal
+      mobileSearchModal: !!mobileSearchModal,
+      closeMobileSearch: !!closeMobileSearch
     });
     return;
   }
