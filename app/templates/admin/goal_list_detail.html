@@ -50,12 +50,13 @@
         <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addItemsModal">
             <i class="bi bi-plus-circle me-2"></i>新增項目
         </button>
-        <button class="btn btn-outline-{{ 'danger' if goal_list.is_active else 'success' }}" 
-                onclick="toggleGoalList({{ goal_list.id }})">
+        <button class="btn btn-outline-{{ 'danger' if goal_list.is_active else 'success' }} js-toggle-list" 
+                data-list-id="{{ goal_list.id }}">
             <i class="bi bi-toggle-{{ 'on' if goal_list.is_active else 'off' }} me-1"></i>
             {{ '停用' if goal_list.is_active else '啟用' }}
         </button>
-        <button class="btn btn-outline-danger" onclick="deleteGoalList({{ goal_list.id }})">
+        <button class="btn btn-outline-danger js-delete-list" 
+                data-list-id="{{ goal_list.id }}">
             <i class="bi bi-trash me-1"></i>刪除清單
         </button>
     </div>
@@ -168,8 +169,8 @@
                     <div class="ms-3">
                         {% if item.is_completed %}
                         <span class="completion-badge badge bg-success">已完成</span>
-                        <button class="btn btn-sm btn-outline-secondary ms-2" 
-                                onclick="markIncomplete({{ item.id }})"
+                        <button class="btn btn-sm btn-outline-secondary ms-2 js-mark-incomplete" 
+                                data-item-id="{{ item.id }}"
                                 title="取消完成">
                             <i class="bi bi-arrow-counterclockwise"></i>
                         </button>
@@ -185,14 +186,21 @@
                            title="在編輯器中創建">
                             <i class="bi bi-plus-circle me-1"></i>創建
                         </a>
-                        <button class="btn btn-sm btn-outline-secondary ms-2" 
-                                onclick="markComplete({{ item.id }})"
+                        <button class="btn btn-sm btn-outline-primary ms-2 js-open-alias-modal"
+                                data-item-id="{{ item.id }}"
+                                data-item-title="{{ item.title }}"
+                                title="搜尋既有關鍵字並設定為別名">
+                            <i class="bi bi-link-45deg me-1"></i>設定別名
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary ms-2 js-mark-complete"
+                                data-item-id="{{ item.id }}"
                                 title="手動標記為完成">
                             <i class="bi bi-check-lg"></i>
                         </button>
                         {% if goal_list.created_by == current_user.id or current_user.is_admin() %}
-                        <button class="btn btn-sm btn-outline-danger ms-2" 
-                                onclick="deleteItem({{ item.id }}, '{{ item.title }}')"
+                        <button class="btn btn-sm btn-outline-danger ms-2 js-delete-item" 
+                                data-item-id="{{ item.id }}"
+                                data-item-title="{{ item.title }}"
                                 title="刪除此項目">
                             <i class="bi bi-trash"></i>
                         </button>
@@ -208,6 +216,35 @@
             <p class="text-muted">此清單尚無項目</p>
         </div>
         {% endif %}
+    </div>
+</div>
+
+<div class="modal fade" id="aliasModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-link-45deg me-2"></i>設定別名
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">選擇要掛接的既有關鍵字後，系統會建立別名並標記此目標為完成。</p>
+                <div class="input-group mb-3">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" id="aliasSearchInput" placeholder="輸入關鍵字標題或別名進行搜尋">
+                </div>
+                <div class="mb-3">
+                    <span class="fw-semibold">目前項目：</span>
+                    <span id="aliasModalCurrentTitle" class="badge bg-light text-dark ms-1"></span>
+                </div>
+                <div id="aliasSearchStatus" class="text-muted small">輸入至少兩個字元開始搜尋。</div>
+                <div id="aliasResults" class="list-group mt-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -276,206 +313,515 @@
 </div>
 
 <script>
-// 編輯清單資訊
-document.getElementById('editListForm').addEventListener('submit', function(e) {
-    e.preventDefault();
+(function() {
+    'use strict';
     
-    const listId = {{ goal_list.id }};
-    const formData = {
-        name: document.getElementById('listName').value.trim(),
-        description: document.getElementById('listDescription').value.trim(),
-        category_name: document.getElementById('listCategory').value.trim()
-    };
+    console.log('Goal list detail script loaded');
     
-    if (!formData.name || !formData.category_name) {
-        alert('請填寫必填欄位');
-        return;
+    // ========== 全域變數 ==========
+    let aliasModal = null;
+    let currentItemId = null;
+    let searchTimer = null;
+    
+    // ========== 初始化 ==========
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM ready, initializing...');
+        
+        // 初始化別名模態框
+        initAliasModal();
+        
+        // 綁定表單事件
+        bindFormEvents();
+        
+        // 設置事件委託
+        setupEventDelegation();
+        
+        console.log('Initialization complete');
+    });
+    
+    // ========== 別名模態框初始化 ==========
+    function initAliasModal() {
+        const modalEl = document.getElementById('aliasModal');
+        const searchInput = document.getElementById('aliasSearchInput');
+        
+        if (!modalEl) {
+            console.warn('Alias modal element not found');
+            return;
+        }
+        
+        if (typeof bootstrap === 'undefined') {
+            console.error('Bootstrap is not loaded');
+            return;
+        }
+        
+        try {
+            aliasModal = new bootstrap.Modal(modalEl);
+            console.log('Alias modal initialized');
+            
+            // 模態框顯示時自動聚焦搜尋框
+            modalEl.addEventListener('shown.bs.modal', function() {
+                if (searchInput) {
+                    searchInput.focus();
+                    searchInput.select();
+                }
+            });
+            
+            // 綁定搜尋輸入事件
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    const query = e.target.value.trim();
+                    scheduleSearch(query);
+                });
+            }
+        } catch (error) {
+            console.error('Failed to initialize alias modal:', error);
+        }
     }
     
-    fetch(`/admin/goal-lists/${listId}/update`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken()
-        },
-        body: JSON.stringify(formData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert(data.message || '更新失敗');
+    // ========== 搜尋功能 ==========
+    function scheduleSearch(query) {
+        if (searchTimer) {
+            clearTimeout(searchTimer);
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('更新失敗');
-    });
-});
-
-// 新增項目
-document.getElementById('addItemsForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const listId = {{ goal_list.id }};
-    const itemsText = document.getElementById('newItems').value.trim();
-    
-    if (!itemsText) {
-        alert('請輸入至少一個關鍵字');
-        return;
+        
+        searchTimer = setTimeout(function() {
+            performSearch(query);
+        }, 300);
     }
     
-    const items = itemsText.split('\n').filter(line => line.trim()).map(line => line.trim());
-    
-    if (items.length === 0) {
-        alert('請輸入至少一個關鍵字');
-        return;
+    function performSearch(query) {
+        const resultsContainer = document.getElementById('aliasResults');
+        const statusEl = document.getElementById('aliasSearchStatus');
+        
+        if (!resultsContainer || !statusEl) return;
+        
+        // 清空之前的結果
+        resultsContainer.innerHTML = '';
+        
+        if (!query || query.length < 2) {
+            statusEl.textContent = '輸入至少兩個字元開始搜尋。';
+            statusEl.className = 'text-muted small';
+            return;
+        }
+        
+        statusEl.textContent = '搜尋中...';
+        statusEl.className = 'text-muted small';
+        
+        fetch('/admin/goal-items/keyword-search?q=' + encodeURIComponent(query))
+            .then(function(response) {
+                if (!response.ok) throw new Error('搜尋請求失敗');
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.success) {
+                    displaySearchResults(data.results || []);
+                } else {
+                    statusEl.textContent = data.message || '搜尋失敗';
+                    statusEl.className = 'text-danger small';
+                }
+            })
+            .catch(function(error) {
+                console.error('Search error:', error);
+                statusEl.textContent = '搜尋失敗，請稍後再試';
+                statusEl.className = 'text-danger small';
+            });
     }
     
-    fetch(`/admin/goal-lists/${listId}/add-items`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken()
-        },
-        body: JSON.stringify({ items: items })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(`已新增 ${data.count} 個項目`);
-            location.reload();
-        } else {
-            alert(data.message || '新增失敗');
+    function displaySearchResults(results) {
+        const resultsContainer = document.getElementById('aliasResults');
+        const statusEl = document.getElementById('aliasSearchStatus');
+        
+        if (!resultsContainer || !statusEl) return;
+        
+        resultsContainer.innerHTML = '';
+        
+        if (results.length === 0) {
+            statusEl.textContent = '找不到符合的關鍵字';
+            statusEl.className = 'text-danger small';
+            return;
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('新增失敗');
-    });
-});
-
-function toggleGoalList(listId) {
-    fetch(`/admin/goal-lists/${listId}/toggle`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken()
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert(data.message || '操作失敗');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('操作失敗');
-    });
-}
-
-function deleteGoalList(listId) {
-    if (!confirm('確定要刪除此目標清單嗎?\n所有未完成的項目也將被刪除。\n此操作無法復原!')) {
-        return;
+        
+        statusEl.textContent = '找到 ' + results.length + ' 個結果，點擊要掛接的關鍵字';
+        statusEl.className = 'text-muted small';
+        
+        results.forEach(function(item) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-start';
+            
+            const textDiv = document.createElement('div');
+            textDiv.className = 'me-3';
+            
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'fw-semibold';
+            titleDiv.textContent = item.title || '';
+            textDiv.appendChild(titleDiv);
+            
+            if (item.category) {
+                const metaDiv = document.createElement('div');
+                metaDiv.className = 'text-muted small';
+                if (item.category_icon) {
+                    const icon = document.createElement('i');
+                    icon.className = item.category_icon + ' me-1';
+                    metaDiv.appendChild(icon);
+                }
+                metaDiv.appendChild(document.createTextNode(item.category));
+                textDiv.appendChild(metaDiv);
+            }
+            
+            btn.appendChild(textDiv);
+            
+            if (item.match_label) {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-primary text-white';
+                badge.textContent = item.match_label;
+                btn.appendChild(badge);
+            }
+            
+            btn.onclick = function() {
+                selectKeyword(item.id, item.title);
+            };
+            
+            resultsContainer.appendChild(btn);
+        });
     }
     
-    fetch(`/admin/goal-lists/${listId}/delete`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken()
+    function selectKeyword(keywordId, keywordTitle) {
+        const currentTitle = document.getElementById('aliasModalCurrentTitle');
+        const titleText = currentTitle ? currentTitle.textContent : '';
+        
+        if (!confirm('確定要將「' + titleText + '」設定為「' + keywordTitle + '」的別名並標記此項目為完成嗎?')) {
+            return;
         }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            window.location.href = '{{ url_for("admin.manage_goal_lists") }}';
-        } else {
-            alert(data.message || '刪除失敗');
+        
+        const statusEl = document.getElementById('aliasSearchStatus');
+        if (statusEl) {
+            statusEl.textContent = '處理中，請稍候...';
+            statusEl.className = 'text-muted small';
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('刪除失敗');
-    });
-}
-
-function deleteItem(itemId, title) {
-    if (!confirm(`確定要刪除項目「${title}」嗎?\n此操作無法復原!`)) {
-        return;
+        
+        fetch('/admin/goal-items/' + currentItemId + '/attach-alias', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({ keyword_id: keywordId })
+        })
+        .then(function(response) {
+            if (!response.ok) throw new Error('請求失敗');
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.success) {
+                alert(data.message || '設定成功');
+                location.reload();
+            } else {
+                throw new Error(data.message || '設定失敗');
+            }
+        })
+        .catch(function(error) {
+            console.error('Attach alias error:', error);
+            if (statusEl) {
+                statusEl.textContent = '設定失敗：' + error.message;
+                statusEl.className = 'text-danger small';
+            }
+        });
     }
     
-    fetch(`/admin/goal-items/${itemId}/delete`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken()
+    // ========== 表單事件綁定 ==========
+    function bindFormEvents() {
+        // 編輯清單表單
+        const editForm = document.getElementById('editListForm');
+        if (editForm) {
+            editForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const listId = {{ goal_list.id }};
+                const formData = {
+                    name: document.getElementById('listName').value.trim(),
+                    description: document.getElementById('listDescription').value.trim(),
+                    category_name: document.getElementById('listCategory').value.trim()
+                };
+                
+                if (!formData.name || !formData.category_name) {
+                    alert('請填寫必填欄位');
+                    return;
+                }
+                
+                fetch('/admin/goal-lists/' + listId + '/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: JSON.stringify(formData)
+                })
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.message || '更新失敗');
+                    }
+                })
+                .catch(function(err) {
+                    console.error(err);
+                    alert('更新失敗');
+                });
+            });
         }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert(data.message || '刪除失敗');
+        
+        // 新增項目表單
+        const addForm = document.getElementById('addItemsForm');
+        if (addForm) {
+            addForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const listId = {{ goal_list.id }};
+                const itemsText = document.getElementById('newItems').value.trim();
+                
+                if (!itemsText) {
+                    alert('請輸入至少一個關鍵字');
+                    return;
+                }
+                
+                const items = itemsText.split('\n')
+                    .map(function(line) { return line.trim(); })
+                    .filter(function(line) { return line.length > 0; });
+                
+                if (items.length === 0) {
+                    alert('請輸入至少一個關鍵字');
+                    return;
+                }
+                
+                fetch('/admin/goal-lists/' + listId + '/add-items', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: JSON.stringify({ items: items })
+                })
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        alert('已新增 ' + data.count + ' 個項目');
+                        location.reload();
+                    } else {
+                        alert(data.message || '新增失敗');
+                    }
+                })
+                .catch(function(err) {
+                    console.error(err);
+                    alert('新增失敗');
+                });
+            });
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('刪除失敗');
-    });
-}
-
-function markComplete(itemId) {
-    fetch(`/admin/goal-items/${itemId}/mark-complete`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken()
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert(data.message || '操作失敗');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('操作失敗');
-    });
-}
-
-function markIncomplete(itemId) {
-    if (!confirm('確定要取消完成標記嗎?')) {
-        return;
     }
     
-    fetch(`/admin/goal-items/${itemId}/mark-incomplete`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken()
+    // ========== 事件委託 ==========
+    function setupEventDelegation() {
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('button');
+            if (!target) return;
+            
+            // 開啟別名模態框
+            if (target.classList.contains('js-open-alias-modal')) {
+                e.preventDefault();
+                const itemId = target.dataset.itemId;
+                const itemTitle = target.dataset.itemTitle;
+                openAliasModalHandler(itemId, itemTitle);
+            }
+            
+            // 標記完成
+            else if (target.classList.contains('js-mark-complete')) {
+                e.preventDefault();
+                const itemId = target.dataset.itemId;
+                markCompleteHandler(itemId);
+            }
+            
+            // 取消完成
+            else if (target.classList.contains('js-mark-incomplete')) {
+                e.preventDefault();
+                const itemId = target.dataset.itemId;
+                markIncompleteHandler(itemId);
+            }
+            
+            // 刪除項目
+            else if (target.classList.contains('js-delete-item')) {
+                e.preventDefault();
+                const itemId = target.dataset.itemId;
+                const itemTitle = target.dataset.itemTitle;
+                deleteItemHandler(itemId, itemTitle);
+            }
+            
+            // 切換清單
+            else if (target.classList.contains('js-toggle-list')) {
+                e.preventDefault();
+                const listId = target.dataset.listId;
+                toggleGoalListHandler(listId);
+            }
+            
+            // 刪除清單
+            else if (target.classList.contains('js-delete-list')) {
+                e.preventDefault();
+                const listId = target.dataset.listId;
+                deleteGoalListHandler(listId);
+            }
+        });
+    }
+    
+    // ========== 處理函數 ==========
+    function openAliasModalHandler(itemId, itemTitle) {
+        console.log('openAliasModal called:', itemId, itemTitle);
+        
+        if (!aliasModal) {
+            alert('系統錯誤：模態框未初始化');
+            return;
         }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert(data.message || '操作失敗');
+        
+        currentItemId = itemId;
+        
+        const titleEl = document.getElementById('aliasModalCurrentTitle');
+        if (titleEl) titleEl.textContent = itemTitle || '';
+        
+        const searchInput = document.getElementById('aliasSearchInput');
+        if (searchInput) searchInput.value = '';
+        
+        const resultsContainer = document.getElementById('aliasResults');
+        if (resultsContainer) resultsContainer.innerHTML = '';
+        
+        const statusEl = document.getElementById('aliasSearchStatus');
+        if (statusEl) {
+            statusEl.textContent = '輸入至少兩個字元開始搜尋。';
+            statusEl.className = 'text-muted small';
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('操作失敗');
-    });
-}
+        
+        aliasModal.show();
+    }
+    
+    function toggleGoalListHandler(listId) {
+        fetch('/admin/goal-lists/' + listId + '/toggle', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || '操作失敗');
+            }
+        })
+        .catch(function(err) {
+            console.error(err);
+            alert('操作失敗');
+        });
+    }
+    
+    function deleteGoalListHandler(listId) {
+        if (!confirm('確定要刪除此目標清單嗎?\n所有未完成的項目也將被刪除。\n此操作無法復原!')) {
+            return;
+        }
+        
+        fetch('/admin/goal-lists/' + listId + '/delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) {
+                window.location.href = '{{ url_for("admin.manage_goal_lists") }}';
+            } else {
+                alert(data.message || '刪除失敗');
+            }
+        })
+        .catch(function(err) {
+            console.error(err);
+            alert('刪除失敗');
+        });
+    }
+    
+    function deleteItemHandler(itemId, title) {
+        if (!confirm('確定要刪除項目「' + title + '」嗎?\n此操作無法復原!')) {
+            return;
+        }
+        
+        fetch('/admin/goal-items/' + itemId + '/delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || '刪除失敗');
+            }
+        })
+        .catch(function(err) {
+            console.error(err);
+            alert('刪除失敗');
+        });
+    }
+    
+    function markCompleteHandler(itemId) {
+        fetch('/admin/goal-items/' + itemId + '/mark-complete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || '操作失敗');
+            }
+        })
+        .catch(function(err) {
+            console.error(err);
+            alert('操作失敗');
+        });
+    }
+    
+    function markIncompleteHandler(itemId) {
+        if (!confirm('確定要取消完成標記嗎?')) {
+            return;
+        }
+        
+        fetch('/admin/goal-items/' + itemId + '/mark-incomplete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || '操作失敗');
+            }
+        })
+        .catch(function(err) {
+            console.error(err);
+            alert('操作失敗');
+        });
+    }
+})();
 </script>
 {% endblock %}

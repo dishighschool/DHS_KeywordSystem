@@ -267,7 +267,7 @@ def keyword_detail(category_slug: str, slug: str):
     raw_markdown = unescape(keyword.description_markdown or "")
     html_description = markdown(
         raw_markdown,
-        extras=["fenced-code-blocks", "tables", "strikethrough", "task_lists"],
+        extras=["fenced-code-blocks", "tables", "strike", "task_lists", "break-on-newline"],
         safe_mode="escape",
     )  # noqa: S607
     html_description = keyword_linker.link_keywords_in_html(
@@ -457,7 +457,7 @@ def api_search():
     for keyword in keywords:
         description_html = markdown(
             unescape(keyword.description_markdown or ""),
-            extras=["fenced-code-blocks", "tables", "strikethrough", "task_lists"],
+            extras=["fenced-code-blocks", "tables", "strike", "task_lists", "break-on-newline"],
             safe_mode="escape",
         )
         description_text = _plain_text_from_html(description_html)
@@ -499,7 +499,7 @@ def api_search():
     for alias in aliases:
         description_html = markdown(
             unescape(alias.keyword.description_markdown or ""),
-            extras=["fenced-code-blocks", "tables", "strikethrough", "task_lists"],
+            extras=["fenced-code-blocks", "tables", "strike", "task_lists", "break-on-newline"],
             safe_mode="escape",
         )
         description_text = _plain_text_from_html(description_html)

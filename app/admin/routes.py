@@ -24,6 +24,8 @@ from ..forms import (
 from ..models import (
     AnnouncementBanner,
     EditLog,
+    EditLogAction,
+    EditLogTarget,
     FooterSocialLink,
     KeywordAlias,
     KeywordCategory,
@@ -149,6 +151,82 @@ def markdown_preview():
     except Exception as e:
         current_app.logger.error(f"Markdown preview error: {e}")
         return jsonify({'error': str(e), 'success': False}), 500
+
+
+@admin_bp.get("/goal-items/keyword-search")
+def search_keywords_for_goal_items():
+    """Search existing keywords to attach aliases for goal list items."""
+    from sqlalchemy import or_
+    from sqlalchemy.orm import load_only, selectinload
+
+    query_text = (request.args.get("q", "") or "").strip()
+    if not query_text:
+        return jsonify({"success": True, "results": []})
+
+    like_pattern = f"%{query_text}%"
+
+    keyword_query = (
+        LearningKeyword.query.options(
+            load_only(LearningKeyword.id, LearningKeyword.title, LearningKeyword.slug),
+            selectinload(LearningKeyword.category).load_only(KeywordCategory.id, KeywordCategory.name, KeywordCategory.icon),
+        )
+        .filter(
+            or_(
+                LearningKeyword.title.ilike(like_pattern),
+                LearningKeyword.slug.ilike(like_pattern),
+            )
+        )
+        .order_by(LearningKeyword.title.asc())
+        .limit(20)
+    )
+
+    alias_query = (
+        KeywordAlias.query.options(
+            load_only(KeywordAlias.id, KeywordAlias.title),
+            selectinload(KeywordAlias.keyword)
+            .load_only(LearningKeyword.id, LearningKeyword.title)
+            .selectinload(LearningKeyword.category)
+            .load_only(KeywordCategory.id, KeywordCategory.name, KeywordCategory.icon),
+        )
+        .filter(KeywordAlias.title.ilike(like_pattern))
+        .order_by(KeywordAlias.title.asc())
+        .limit(10)
+    )
+
+    keyword_results = keyword_query.all()
+    alias_results = alias_query.all()
+
+    combined: dict[int, dict[str, Any]] = {}
+
+    for keyword in keyword_results:
+        combined[keyword.id] = {
+            "id": keyword.id,
+            "title": keyword.title,
+            "category": keyword.category.name if keyword.category else "",
+            "category_icon": keyword.category.icon if keyword.category else None,
+            "match_label": "主關鍵字匹配",
+        }
+
+    for alias in alias_results:
+        keyword = alias.keyword
+        if keyword is None:
+            continue
+        if keyword.id not in combined:
+            combined[keyword.id] = {
+                "id": keyword.id,
+                "title": keyword.title,
+                "category": keyword.category.name if keyword.category else "",
+                "category_icon": keyword.category.icon if keyword.category else None,
+                "match_label": f"別名匹配：{alias.title}",
+            }
+        else:
+            existing_label = combined[keyword.id].get("match_label") or ""
+            if "別名匹配" not in existing_label:
+                combined[keyword.id]["match_label"] = f"{existing_label}，別名匹配：{alias.title}".strip("，")
+
+    results = sorted(combined.values(), key=lambda item: item["title"].lower())[:20]
+
+    return jsonify({"success": True, "results": results})
 
 
 @admin_bp.get("/")
@@ -1286,101 +1364,115 @@ def _generate_unique_alias_slug(title: str, alias_id: int | None, used_slugs: se
 @admin_required
 def view_edit_logs():
     """查看編輯日誌 (管理員專用)"""
-    from ..models import EditLog
-    from datetime import datetime
-    from sqlalchemy import or_
+    from datetime import datetime, timedelta
+    from sqlalchemy import func, or_
+    from sqlalchemy.orm import load_only, selectinload
+
+    from ..models import EditLog, EditLogAction, EditLogTarget, User
     
     # 獲取篩選參數
     page = request.args.get('page', 1, type=int)
-    per_page = 50
-    action_filter = request.args.get('action', '')
-    target_filter = request.args.get('target', '')
-    user_filter = request.args.get('user', '', type=int)
+    per_page = request.args.get('per_page', 50, type=int) or 50
+    per_page = max(10, min(per_page, 200))  # 保護伺服器資源
+
+    action_filter = (request.args.get('action', '') or '').strip()
+    target_filter = (request.args.get('target', '') or '').strip()
+    user_filter = request.args.get('user', type=int)
     start_date = request.args.get('start_date', '')
     end_date = request.args.get('end_date', '')
     search_query = request.args.get('search', '').strip()
+
+    try:
+        action_enum = EditLogAction(action_filter) if action_filter else None
+    except ValueError:
+        action_enum = None
+        action_filter = ''
+
+    try:
+        target_enum = EditLogTarget(target_filter) if target_filter else None
+    except ValueError:
+        target_enum = None
+        target_filter = ''
+
+    start_dt = None
+    if start_date:
+        try:
+            start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        except ValueError:
+            start_dt = None
+
+    end_dt = None
+    if end_date:
+        try:
+            end_dt = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+        except ValueError:
+            end_dt = None
+
+    search_pattern = f'%{search_query}%' if search_query else None
+
+    def apply_filters(base_query):
+        query = base_query
+        if action_enum:
+            query = query.filter(EditLog.action == action_enum)
+        if target_enum:
+            query = query.filter(EditLog.target_type == target_enum)
+        if user_filter:
+            query = query.filter(EditLog.user_id == user_filter)
+        if start_dt:
+            query = query.filter(EditLog.created_at >= start_dt)
+        if end_dt:
+            query = query.filter(EditLog.created_at < end_dt)
+        if search_pattern:
+            query = query.filter(
+                or_(
+                    EditLog.description.ilike(search_pattern),
+                    EditLog.target_name.ilike(search_pattern),
+                )
+            )
+        return query
     
     # 建立查詢
-    query = EditLog.query
-    
-    if action_filter:
-        query = query.filter_by(action=action_filter)
-    if target_filter:
-        query = query.filter_by(target_type=target_filter)
-    if user_filter:
-        query = query.filter_by(user_id=user_filter)
-    
-    # 日期範圍篩選
-    if start_date:
-        try:
-            start_dt = datetime.strptime(start_date, '%Y-%m-%d')
-            query = query.filter(EditLog.created_at >= start_dt)
-        except ValueError:
-            pass
-    
-    if end_date:
-        try:
-            end_dt = datetime.strptime(end_date, '%Y-%m-%d')
-            # 包含結束日期的整天
-            from datetime import timedelta
-            end_dt = end_dt + timedelta(days=1)
-            query = query.filter(EditLog.created_at < end_dt)
-        except ValueError:
-            pass
-    
-    # 搜索功能 (搜索描述和目標名稱)
-    if search_query:
-        search_pattern = f'%{search_query}%'
-        query = query.filter(
-            or_(
-                EditLog.description.ilike(search_pattern),
-                EditLog.target_name.ilike(search_pattern)
-            )
-        )
-    
-    # 按時間倒序排列
-    logs = query.order_by(EditLog.created_at.desc()).paginate(
-        page=page, per_page=per_page, error_out=False
+    user_loader = selectinload(EditLog.user).load_only(
+        User.id,
+        User.username,
+        User.role,
+        User.discord_id,
+        User.avatar_hash,
     )
-    
-    # 獲取所有成員列表用於篩選
-    users = User.query.order_by(User.username.asc()).all()
-    
-    # 計算統計數據 (基於當前篩選)
-    total_query = EditLog.query
-    if action_filter:
-        total_query = total_query.filter_by(action=action_filter)
-    if target_filter:
-        total_query = total_query.filter_by(target_type=target_filter)
-    if user_filter:
-        total_query = total_query.filter_by(user_id=user_filter)
-    if start_date:
-        try:
-            start_dt = datetime.strptime(start_date, '%Y-%m-%d')
-            total_query = total_query.filter(EditLog.created_at >= start_dt)
-        except ValueError:
-            pass
-    if end_date:
-        try:
-            end_dt = datetime.strptime(end_date, '%Y-%m-%d')
-            from datetime import timedelta
-            end_dt = end_dt + timedelta(days=1)
-            total_query = total_query.filter(EditLog.created_at < end_dt)
-        except ValueError:
-            pass
-    if search_query:
-        search_pattern = f'%{search_query}%'
-        total_query = total_query.filter(
-            or_(
-                EditLog.description.ilike(search_pattern),
-                EditLog.target_name.ilike(search_pattern)
-            )
-        )
-    
+
+    query = apply_filters(EditLog.query.options(user_loader))
+
+    # 按時間倒序排列並分頁
+    logs = query.order_by(EditLog.created_at.desc()).paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False,
+    )
+
+    # 獲取所有成員列表用於篩選 (僅載入必要欄位)
+    users = (
+        User.query.options(load_only(User.id, User.username, User.role))
+        .order_by(User.username.asc())
+        .all()
+    )
+
+    # 計算統計數據 (單一查詢避免多次 count)
+    stats_rows = (
+        apply_filters(EditLog.query)
+        .with_entities(EditLog.target_type, func.count())
+        .group_by(EditLog.target_type)
+        .all()
+    )
+
+    stats_map: dict[str, int] = {}
+    for target_type, count in stats_rows:
+        key = target_type.value if isinstance(target_type, EditLogTarget) else str(target_type)
+        stats_map[key] = count
+
     stats = {
-        'keyword_count': total_query.filter_by(target_type='keyword').count(),
-        'category_count': total_query.filter_by(target_type='category').count(),
-        'user_count': total_query.filter_by(target_type='user').count(),
+        'keyword_count': stats_map.get(EditLogTarget.KEYWORD.value, 0),
+        'category_count': stats_map.get(EditLogTarget.CATEGORY.value, 0),
+        'user_count': stats_map.get(EditLogTarget.USER.value, 0),
     }
     
     return render_template(
@@ -1393,7 +1485,8 @@ def view_edit_logs():
         start_date=start_date,
         end_date=end_date,
         search_query=search_query,
-        stats=stats
+        stats=stats,
+        per_page=per_page,
     )
 
 
@@ -1921,8 +2014,77 @@ def reorder_announcements():
 @admin_bp.route("/goal-lists")
 def manage_goal_lists():
     """管理關鍵字目標清單"""
-    goal_lists = KeywordGoalList.query.order_by(KeywordGoalList.created_at.desc()).all()
-    return render_template("admin/goal_lists.html", goal_lists=goal_lists)
+    from sqlalchemy import case, func
+    from sqlalchemy.orm import load_only, selectinload
+
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 12, type=int) or 12
+    per_page = max(6, min(per_page, 60))
+    search_query = (request.args.get("search", "") or "").strip()
+
+    base_query = (
+        KeywordGoalList.query.options(
+            selectinload(KeywordGoalList.creator).load_only(User.id, User.username)
+        )
+    )
+
+    if search_query:
+        like_pattern = f"%{search_query}%"
+        base_query = base_query.filter(KeywordGoalList.name.ilike(like_pattern))
+
+    pagination = (
+        base_query.order_by(KeywordGoalList.created_at.desc()).paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False,
+        )
+    )
+
+    visible_lists = pagination.items
+    visible_ids = [goal_list.id for goal_list in visible_lists]
+
+    stats_map: dict[int, tuple[int, int]] = {}
+    if visible_ids:
+        rows = (
+            db.session.query(
+                KeywordGoalItem.goal_list_id.label("goal_list_id"),
+                func.count(KeywordGoalItem.id).label("total_items"),
+                func.coalesce(
+                    func.sum(
+                        case((KeywordGoalItem.is_completed.is_(True), 1), else_=0)
+                    ),
+                    0,
+                ).label("completed_items"),
+            )
+            .filter(KeywordGoalItem.goal_list_id.in_(visible_ids))
+            .group_by(KeywordGoalItem.goal_list_id)
+            .all()
+        )
+
+        for row in rows:
+            stats_map[row.goal_list_id] = (row.total_items, row.completed_items)
+
+    goal_list_cards: list[dict[str, Any]] = []
+    for goal_list in visible_lists:
+        total_items, completed_items = stats_map.get(goal_list.id, (0, 0))
+        completion_rate = (completed_items / total_items * 100) if total_items else 0.0
+        goal_list_cards.append(
+            {
+                "goal_list": goal_list,
+                "total_items": total_items,
+                "completed_items": completed_items,
+                "pending_items": max(total_items - completed_items, 0),
+                "completion_rate": completion_rate,
+            }
+        )
+
+    return render_template(
+        "admin/goal_lists.html",
+        goal_list_cards=goal_list_cards,
+        pagination=pagination,
+        per_page=per_page,
+        search_query=search_query,
+    )
 
 
 @admin_bp.route("/goal-lists/new", methods=["GET", "POST"])
@@ -2103,6 +2265,104 @@ def mark_goal_item_incomplete(item_id: int):
     return jsonify({"success": True, "message": "已取消完成標記"})
 
 
+@admin_bp.post("/goal-items/<int:item_id>/attach-alias")
+def attach_goal_item_as_alias(item_id: int):
+    """將目標項目設定為現有關鍵字的別名並標記完成"""
+    item = KeywordGoalItem.query.get_or_404(item_id)
+
+    data = request.get_json(silent=True) or {}
+    keyword_id_raw = data.get("keyword_id")
+
+    if not isinstance(keyword_id_raw, (int, str)):
+        return jsonify({"success": False, "message": "請選擇要對應的關鍵字"}), 400
+
+    try:
+        keyword_id = int(keyword_id_raw)
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "message": "請選擇要對應的關鍵字"}), 400
+
+    keyword = LearningKeyword.query.get(keyword_id)
+    if keyword is None:
+        return jsonify({"success": False, "message": "找不到指定的關鍵字"}), 404
+
+    alias_title = (item.title or "").strip()
+    if not alias_title:
+        return jsonify({"success": False, "message": "項目標題為空，無法建立別名"}), 400
+
+    from sqlalchemy import func
+    from ..utils.edit_logger import log_edit
+
+    existing_alias = (
+        KeywordAlias.query.filter(
+            KeywordAlias.keyword_id == keyword.id,
+            func.lower(KeywordAlias.title) == alias_title.lower(),
+        )
+        .limit(1)
+        .first()
+    )
+
+    alias_created = False
+    alias_obj = existing_alias
+
+    if alias_obj is None:
+        used_slugs = {keyword.slug}
+        used_slugs.update(alias.slug for alias in keyword.aliases)
+        alias_slug = _generate_unique_alias_slug(alias_title, None, used_slugs)
+
+        alias_obj = KeywordAlias(
+            keyword_id=keyword.id,
+            title=alias_title,
+            slug=alias_slug,
+        )
+        keyword.aliases.append(alias_obj)
+        db.session.add(alias_obj)
+        alias_created = True
+
+    from datetime import datetime
+
+    item.is_completed = True
+    item.completed_by = current_user.id
+    item.completed_at = datetime.utcnow()
+    item.keyword_id = keyword.id
+
+    if keyword.seo_auto_generate:
+        from ..utils.seo import generate_seo_html
+
+        alias_titles = {alias.title for alias in keyword.aliases}
+        alias_titles.add(alias_title)
+        keyword.seo_content = generate_seo_html(keyword.title, aliases=sorted(alias_titles))
+
+    list_name = item.goal_list.name if item.goal_list else "目標清單"
+    action_desc = (
+        f"將目標項目「{alias_title}」設為「{keyword.title}」的別名"
+        f"（來源：{list_name}）"
+    )
+
+    log_edit(
+        action=EditLogAction.UPDATE,
+        target_type=EditLogTarget.KEYWORD,
+        target_id=keyword.id,
+        target_name=keyword.title,
+        description=action_desc,
+    )
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": f"資料庫錯誤：{str(e)}"}), 500
+
+    message_suffix = "並建立別名" if alias_created else "（使用既有別名）"
+
+    return jsonify(
+        {
+            "success": True,
+            "message": f"已標記完成{message_suffix}",
+            "alias_created": alias_created,
+        }
+    )
+
+
 @admin_bp.post("/goal-items/<int:item_id>/delete")
 def delete_goal_item(item_id: int):
     """刪除目標項目"""
@@ -2132,22 +2392,25 @@ def delete_goal_item(item_id: int):
 def data_management():
     """資料管理頁面 - 匯出/匯入系統資料和備份管理"""
     from ..utils.backup_service import BackupService
+    from sqlalchemy import func, select
     
-    # 統計資料
-    stats = {
-        'users': User.query.count(),
-        'categories': KeywordCategory.query.count(),
-        'keywords': LearningKeyword.query.count(),
-        'aliases': KeywordAlias.query.count(),
-        'videos': YouTubeVideo.query.count(),
-        'nav_links': NavigationLink.query.count(),
-        'footer_links': FooterSocialLink.query.count(),
-        'announcements': AnnouncementBanner.query.count(),
-        'site_settings': SiteSetting.query.count(),
-        'goal_lists': KeywordGoalList.query.count(),
-        'goal_items': KeywordGoalItem.query.count(),
-        'edit_logs': db.session.query(EditLog).count(),
-    }
+    counts_stmt = select(
+        select(func.count()).select_from(User).scalar_subquery().label("users"),
+        select(func.count()).select_from(KeywordCategory).scalar_subquery().label("categories"),
+        select(func.count()).select_from(LearningKeyword).scalar_subquery().label("keywords"),
+        select(func.count()).select_from(KeywordAlias).scalar_subquery().label("aliases"),
+        select(func.count()).select_from(YouTubeVideo).scalar_subquery().label("videos"),
+        select(func.count()).select_from(NavigationLink).scalar_subquery().label("nav_links"),
+        select(func.count()).select_from(FooterSocialLink).scalar_subquery().label("footer_links"),
+        select(func.count()).select_from(AnnouncementBanner).scalar_subquery().label("announcements"),
+        select(func.count()).select_from(SiteSetting).scalar_subquery().label("site_settings"),
+        select(func.count()).select_from(KeywordGoalList).scalar_subquery().label("goal_lists"),
+        select(func.count()).select_from(KeywordGoalItem).scalar_subquery().label("goal_items"),
+        select(func.count()).select_from(EditLog).scalar_subquery().label("edit_logs"),
+    )
+
+    stats_row = db.session.execute(counts_stmt).one()
+    stats = dict(stats_row._mapping)
     
     # 備份資料
     backups = BackupService.get_backup_list(limit=10)

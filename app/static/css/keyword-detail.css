@@ -771,10 +771,21 @@
   color: #666;
 }
 
-.markdown-body del {
+/* 刪除線樣式 - 加強渲染效果 */
+.markdown-body del,
+.markdown-body s,
+.markdown-body strike {
   text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  text-decoration-color: #dc3545;
   color: #999;
   opacity: 0.7;
+}
+
+.markdown-body del strong,
+.markdown-body s strong,
+.markdown-body strike strong {
+  font-weight: 700;
 }
 
 /* 段落樣式 */
@@ -782,6 +793,15 @@
   margin: 1rem 0;
   line-height: 1.8;
   color: #444;
+  white-space: pre-wrap;  /* 保留換行符 */
+  word-wrap: break-word;  /* 避免超長單字破版 */
+}
+
+/* 確保單行換行（<br>）正確顯示 */
+.markdown-body br {
+  display: block;
+  content: "";
+  margin-top: 0.5em;
 }
 
 /* 行內代碼和代碼塊的格式化 */

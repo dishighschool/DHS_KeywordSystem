@@ -148,7 +148,7 @@
       </div>
       
       
-      <div class="col-md-10">
+      <div class="col-md-8">
         <label class="form-label fw-semibold small">搜索描述或目標名稱</label>
         <div class="search-input-group">
           <input type="text" name="search" class="form-control form-control-sm" 
@@ -162,7 +162,19 @@
           {% endif %}
         </div>
       </div>
-      
+      <div class="col-md-2">
+        <label class="form-label fw-semibold small">每頁顯示</label>
+        <select name="per_page" class="form-select form-select-sm">
+          {% set per_page_options = [20, 50, 100, 150] %}
+          {% for option in per_page_options %}
+          <option value="{{ option }}" {% if per_page == option %}selected{% endif %}>每頁 {{ option }} 筆</option>
+          {% endfor %}
+          {% if per_page not in per_page_options %}
+          <option value="{{ per_page }}" selected>每頁 {{ per_page }} 筆</option>
+          {% endif %}
+        </select>
+      </div>
+
       <div class="col-md-2 d-flex align-items-end">
         <a href="{{ url_for('admin.view_edit_logs') }}" class="btn btn-outline-secondary btn-sm w-100">
           <i class="bi bi-arrow-counterclockwise me-1"></i>重置
@@ -319,14 +331,14 @@
         <ul class="pagination pagination-sm mb-0 justify-content-center">
           {% if logs.has_prev %}
           <li class="page-item">
-            <a class="page-link" href="{{ url_for('admin.view_edit_logs', page=logs.prev_num, action=action_filter, target=target_filter, user=user_filter) }}">上一頁</a>
+            <a class="page-link" href="{{ url_for('admin.view_edit_logs', page=logs.prev_num, action=action_filter, target=target_filter, user=user_filter, start_date=start_date, end_date=end_date, search=search_query, per_page=per_page) }}">上一頁</a>
           </li>
           {% endif %}
           
           {% for page_num in logs.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
             {% if page_num %}
               <li class="page-item {% if page_num == logs.page %}active{% endif %}">
-                <a class="page-link" href="{{ url_for('admin.view_edit_logs', page=page_num, action=action_filter, target=target_filter, user=user_filter) }}">{{ page_num }}</a>
+                <a class="page-link" href="{{ url_for('admin.view_edit_logs', page=page_num, action=action_filter, target=target_filter, user=user_filter, start_date=start_date, end_date=end_date, search=search_query, per_page=per_page) }}">{{ page_num }}</a>
               </li>
             {% else %}
               <li class="page-item disabled"><span class="page-link">...</span></li>
@@ -335,7 +347,7 @@
           
           {% if logs.has_next %}
           <li class="page-item">
-            <a class="page-link" href="{{ url_for('admin.view_edit_logs', page=logs.next_num, action=action_filter, target=target_filter, user=user_filter) }}">下一頁</a>
+            <a class="page-link" href="{{ url_for('admin.view_edit_logs', page=logs.next_num, action=action_filter, target=target_filter, user=user_filter, start_date=start_date, end_date=end_date, search=search_query, per_page=per_page) }}">下一頁</a>
           </li>
           {% endif %}
         </ul>
@@ -365,6 +377,13 @@ document.addEventListener('DOMContentLoaded', function() {
   if (clearSearchBtn) {
     clearSearchBtn.addEventListener('click', function() {
       document.getElementById('searchInput').value = '';
+      document.getElementById('filterForm').submit();
+    });
+  }
+
+  const perPageSelect = document.querySelector('select[name="per_page"]');
+  if (perPageSelect) {
+    perPageSelect.addEventListener('change', function() {
       document.getElementById('filterForm').submit();
     });
   }

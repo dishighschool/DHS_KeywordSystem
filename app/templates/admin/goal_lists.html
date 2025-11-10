@@ -7,75 +7,107 @@
 {% block page_icon_class %}bi bi-list-check{% endblock %}
 
 {% block content %}
-<div class="mb-4">
+<div class="d-flex flex-wrap align-items-center gap-2 mb-4">
     <a href="{{ url_for('admin.create_goal_list') }}" class="btn btn-primary">
         <i class="bi bi-plus-lg me-2"></i>新增目標清單
     </a>
+
+    <form method="get" class="ms-auto d-flex flex-wrap gap-2 align-items-center" id="goalListFilterForm">
+        <div class="input-group input-group-sm" style="min-width: 220px;">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" name="search" placeholder="搜尋清單名稱"
+                   value="{{ search_query }}">
+            {% if search_query %}
+            <button class="btn btn-outline-secondary" type="button" id="clearGoalListSearch">
+                <i class="bi bi-x-lg"></i>
+            </button>
+            {% endif %}
+        </div>
+        <div>
+            <select name="per_page" class="form-select form-select-sm" id="goalListPerPage">
+                {% set per_page_options = [6, 12, 24, 36, 48, 60] %}
+                {% for option in per_page_options %}
+                <option value="{{ option }}" {% if per_page == option %}selected{% endif %}>每頁 {{ option }}</option>
+                {% endfor %}
+                {% if per_page not in per_page_options %}
+                <option value="{{ per_page }}" selected>每頁 {{ per_page }}</option>
+                {% endif %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-funnel me-1"></i>套用
+        </button>
+    </form>
 </div>
 
-{% if not goal_lists %}
+{% if not goal_list_cards %}
 <div class="admin-card">
     <div class="admin-card-body text-center py-5">
         <i class="bi bi-list-check" style="font-size: 4rem; color: #dee2e6;"></i>
         <h4 class="mt-3 text-muted">尚無目標清單</h4>
+        {% if search_query %}
+        <p class="text-muted">沒有找到符合「{{ search_query }}」的清單，請嘗試其他關鍵字</p>
+        <a href="{{ url_for('admin.manage_goal_lists') }}" class="btn btn-outline-secondary mt-3">清除篩選</a>
+        {% else %}
         <p class="text-muted">創建第一個目標清單,開始協同完成關鍵字創建計畫</p>
         <a href="{{ url_for('admin.create_goal_list') }}" class="btn btn-primary mt-3">
             <i class="bi bi-plus-lg me-2"></i>創建目標清單
         </a>
+        {% endif %}
     </div>
 </div>
 {% else %}
 <div class="row g-4">
-    {% for goal_list in goal_lists %}
+    {% for card in goal_list_cards %}
     <div class="col-md-6 col-lg-4">
         <div class="admin-card h-100">
             <div class="admin-card-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <h5 class="mb-0">
-                        <a href="{{ url_for('admin.view_goal_list', list_id=goal_list.id) }}" class="text-decoration-none">
-                            {{ goal_list.name }}
+                        <a href="{{ url_for('admin.view_goal_list', list_id=card.goal_list.id) }}" class="text-decoration-none">
+                            {{ card.goal_list.name }}
                         </a>
                     </h5>
-                    <span class="badge bg-{{ 'success' if goal_list.is_active else 'secondary' }}">
-                        {{ '進行中' if goal_list.is_active else '已停用' }}
+                    <span class="badge bg-{{ 'success' if card.goal_list.is_active else 'secondary' }}">
+                        {{ '進行中' if card.goal_list.is_active else '已停用' }}
                     </span>
                 </div>
                 
-                {% if goal_list.description %}
-                <p class="text-muted small mb-3">{{ goal_list.description[:100] }}{% if goal_list.description|length > 100 %}...{% endif %}</p>
+                {% if card.goal_list.description %}
+                <p class="text-muted small mb-3">{{ card.goal_list.description[:100] }}{% if card.goal_list.description|length > 100 %}...{% endif %}</p>
                 {% endif %}
                 
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <small class="text-muted">完成進度</small>
-                        <small class="fw-bold">{{ goal_list.completed_items }} / {{ goal_list.total_items }}</small>
+                        <small class="fw-bold">{{ card.completed_items }} / {{ card.total_items }}</small>
                     </div>
                     <div class="progress" style="height: 8px;">
                         <div class="progress-bar bg-success" role="progressbar" 
-                             style="width: {{ goal_list.completion_rate }}%"
-                             aria-valuenow="{{ goal_list.completion_rate }}" 
+                             style="width: {{ card.completion_rate }}%"
+                             aria-valuenow="{{ card.completion_rate }}" 
                              aria-valuemin="0" 
                              aria-valuemax="100"></div>
                     </div>
-                    <small class="text-muted">{{ "%.1f"|format(goal_list.completion_rate) }}%</small>
+                    <small class="text-muted">{{ "%.1f"|format(card.completion_rate) }}%</small>
                 </div>
                 
                 <div class="d-flex align-items-center text-muted small mb-3">
                     <i class="bi bi-folder me-2"></i>
-                    <span>分類: {{ goal_list.category_name }}</span>
+                    <span>分類: {{ card.goal_list.category_name }}</span>
                 </div>
                 
                 <div class="d-flex align-items-center text-muted small mb-3">
                     <i class="bi bi-person me-2"></i>
-                    <span>創建者: {{ goal_list.creator.username }}</span>
+                    <span>創建者: {{ card.goal_list.creator.username }}</span>
                 </div>
                 
                 <div class="d-flex gap-2">
-                    <a href="{{ url_for('admin.view_goal_list', list_id=goal_list.id) }}" class="btn btn-sm btn-primary flex-fill">
+                    <a href="{{ url_for('admin.view_goal_list', list_id=card.goal_list.id) }}" class="btn btn-sm btn-primary flex-fill">
                         <i class="bi bi-eye me-1"></i>查看詳情
                     </a>
-                    {% if goal_list.created_by == current_user.id or current_user.is_admin() %}
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteGoalList({{ goal_list.id }}, '{{ goal_list.name }}')">
+                    {% if card.goal_list.created_by == current_user.id or current_user.is_admin() %}
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteGoalList({{ card.goal_list.id }}, '{{ card.goal_list.name }}')">
                         <i class="bi bi-trash"></i>
                     </button>
                     {% endif %}
@@ -85,6 +117,36 @@
     </div>
     {% endfor %}
 </div>
+
+{% if pagination.pages > 1 %}
+<div class="mt-4">
+    <nav>
+        <ul class="pagination pagination-sm justify-content-center">
+            {% if pagination.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin.manage_goal_lists', page=pagination.prev_num, per_page=per_page, search=search_query) }}">上一頁</a>
+            </li>
+            {% endif %}
+
+            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('admin.manage_goal_lists', page=page_num, per_page=per_page, search=search_query) }}">{{ page_num }}</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+                {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin.manage_goal_lists', page=pagination.next_num, per_page=per_page, search=search_query) }}">下一頁</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endif %}
 {% endif %}
 
 <script>
@@ -119,5 +181,32 @@ function deleteGoalList(listId, listName) {
         alert('刪除失敗');
     });
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('input[name="search"]');
+    if (searchInput) {
+        searchInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                document.getElementById('goalListFilterForm').submit();
+            }
+        });
+    }
+
+    const perPageSelect = document.getElementById('goalListPerPage');
+    if (perPageSelect) {
+        perPageSelect.addEventListener('change', function() {
+            document.getElementById('goalListFilterForm').submit();
+        });
+    }
+
+    const clearBtn = document.getElementById('clearGoalListSearch');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            const form = document.getElementById('goalListFilterForm');
+            form.querySelector('input[name="search"]').value = '';
+            form.submit();
+        });
+    }
+});
 </script>
 {% endblock %}
