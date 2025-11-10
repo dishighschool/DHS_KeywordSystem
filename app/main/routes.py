@@ -3,17 +3,15 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from html import unescape
 
 from flask import Blueprint, abort, jsonify, make_response, redirect, render_template, url_for
-
-from markdown2 import markdown
 
 from ..extensions import db
 from ..models import KeywordAlias, KeywordCategory, LearningKeyword, slugify
 from ..sitemap import sitemap_manager
 from ..keyword_linker import keyword_linker
 from ..utils.seo import generate_seo_html
+from ..utils.markdown_renderer import render_markdown_safe, strip_markdown_to_text
 
 
 main_bp = Blueprint("main", __name__)
@@ -264,16 +262,17 @@ def keyword_detail(category_slug: str, slug: str):
 
     keyword.view_count += 1
 
-    raw_markdown = unescape(keyword.description_markdown or "")
-    html_description = markdown(
-        raw_markdown,
-        extras=["fenced-code-blocks", "tables", "strike", "task_lists", "break-on-newline"],
-        safe_mode="escape",
-    )  # noqa: S607
+    # 使用安全的 Markdown 渲染器
+    raw_markdown = keyword.description_markdown or ""
+    html_description = render_markdown_safe(raw_markdown)
+    
+    # 添加關鍵字連結
     html_description = keyword_linker.link_keywords_in_html(
         html_description, current_keyword_id=keyword.id
     )
-    description_plain = _plain_text_from_html(html_description)
+    
+    # 提取純文本
+    description_plain = strip_markdown_to_text(raw_markdown)
 
     related_keywords = (
         LearningKeyword.query
@@ -455,12 +454,9 @@ def api_search():
     
     # Add keywords
     for keyword in keywords:
-        description_html = markdown(
-            unescape(keyword.description_markdown or ""),
-            extras=["fenced-code-blocks", "tables", "strike", "task_lists", "break-on-newline"],
-            safe_mode="escape",
-        )
-        description_text = _plain_text_from_html(description_html)
+        # 使用安全的 Markdown 渲染器
+        description_html = render_markdown_safe(keyword.description_markdown or "")
+        description_text = strip_markdown_to_text(keyword.description_markdown or "")
 
         alias_titles = [
             _clean_title(alias.title)
@@ -497,12 +493,9 @@ def api_search():
     
     # Add aliases
     for alias in aliases:
-        description_html = markdown(
-            unescape(alias.keyword.description_markdown or ""),
-            extras=["fenced-code-blocks", "tables", "strike", "task_lists", "break-on-newline"],
-            safe_mode="escape",
-        )
-        description_text = _plain_text_from_html(description_html)
+        # 使用安全的 Markdown 渲染器
+        description_html = render_markdown_safe(alias.keyword.description_markdown or "")
+        description_text = strip_markdown_to_text(alias.keyword.description_markdown or "")
 
         keyword_seo = seo_cache.get(alias.keyword_id, {"plain": "", "related_queries": []})
         seo_plain_text = keyword_seo.get("plain", "")
