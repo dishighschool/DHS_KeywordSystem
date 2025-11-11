@@ -18,6 +18,7 @@ class BackupScheduler:
 
     scheduler: BackgroundScheduler | None = None
     _initialized = False
+    _app: Flask | None = None
 
     @classmethod
     def init_app(cls, app: Flask) -> None:
@@ -25,6 +26,7 @@ class BackupScheduler:
         if cls._initialized:
             return
 
+        cls._app = app
         cls.scheduler = BackgroundScheduler(daemon=True)
 
         # 新增每天午夜 1:00 的自動備份工作
@@ -54,13 +56,17 @@ class BackupScheduler:
 
         logger.info("Backup scheduler initialized")
 
-    @staticmethod
-    def _create_daily_backup() -> None:
+    @classmethod
+    def _create_daily_backup(cls) -> None:
         """執行每日備份"""
+        if cls._app is None:
+            logger.error("App instance not available for backup scheduler")
+            return
+
         try:
             from .backup_service import BackupService
 
-            with current_app.app_context():
+            with cls._app.app_context():
                 backup = BackupService.create_backup(
                     backup_type="auto",
                     description="自動每日備份",
@@ -76,13 +82,17 @@ class BackupScheduler:
         except Exception as e:
             logger.error(f"Error during daily backup: {e}", exc_info=True)
 
-    @staticmethod
-    def _cleanup_old_backups() -> None:
+    @classmethod
+    def _cleanup_old_backups(cls) -> None:
         """清理舊備份"""
+        if cls._app is None:
+            logger.error("App instance not available for backup cleanup")
+            return
+
         try:
             from .backup_service import BackupService
 
-            with current_app.app_context():
+            with cls._app.app_context():
                 count = BackupService.cleanup_old_backups(retention_days=30)
                 logger.info(f"Cleaned up {count} old backups")
 

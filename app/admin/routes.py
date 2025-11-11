@@ -2415,13 +2415,40 @@ def data_management():
     # 備份資料
     backups = BackupService.get_backup_list(limit=10)
     backup_stats = BackupService.get_backup_stats()
+    backup_webhook_url = SiteSetting.get(SiteSettingKey.BACKUP_DISCORD_WEBHOOK_URL, "") or ""
     
     return render_template(
         'admin/data_management.html', 
         stats=stats,
         backups=backups,
-        backup_stats=backup_stats
+        backup_stats=backup_stats,
+        backup_webhook_url=backup_webhook_url,
     )
+
+
+@admin_bp.post("/data-management/backup-webhook")
+@admin_required
+def update_backup_webhook():
+    """更新或清除備份 Discord Webhook 設定。"""
+    action = request.form.get("action", "save")
+    webhook_url = (request.form.get("webhook_url") or "").strip()
+
+    if action == "clear" or not webhook_url:
+        SiteSetting.delete(SiteSettingKey.BACKUP_DISCORD_WEBHOOK_URL)
+        flash("已停用 Discord 備份通知推送。", "info")
+        return redirect(url_for("admin.data_management"))
+
+    # 基本格式驗證，限制為 Discord 官方 Webhook URL
+    if not (
+        webhook_url.startswith("https://discord.com/api/webhooks/")
+        or webhook_url.startswith("https://discordapp.com/api/webhooks/")
+    ):
+        flash("Discord Webhook URL 格式不正確，請確認後再試。", "danger")
+        return redirect(url_for("admin.data_management"))
+
+    SiteSetting.set(SiteSettingKey.BACKUP_DISCORD_WEBHOOK_URL, webhook_url)
+    flash("Discord 備份通知設定已更新。", "success")
+    return redirect(url_for("admin.data_management"))
 
 
 @admin_bp.get("/data-management/export")
@@ -2606,6 +2633,7 @@ def export_system_data():
 @admin_required
 def import_system_data():
     """匯入系統資料"""
+    import gzip
     import json
     from datetime import datetime
     
@@ -2620,14 +2648,27 @@ def import_system_data():
         flash('未選擇檔案', 'danger')
         return redirect(url_for('admin.data_management'))
     
-    if not file.filename or not file.filename.endswith('.json'):
-        flash('只能匯入 JSON 檔案', 'danger')
+    # 支援 .json 和 .json.gz 檔案
+    if not file.filename or not (file.filename.endswith('.json') or file.filename.endswith('.json.gz') or file.filename.endswith('.gz')):
+        flash('只能匯入 JSON 或 JSON.GZ 檔案', 'danger')
         return redirect(url_for('admin.data_management'))
     
     # 讀取並解析檔案
     try:
-        content = file.read().decode('utf-8')
+        file_content = file.read()
+        
+        # 判斷是否為壓縮檔案
+        if file.filename.endswith('.gz'):
+            # 解壓縮
+            content = gzip.decompress(file_content).decode('utf-8')
+        else:
+            # 直接讀取
+            content = file_content.decode('utf-8')
+        
         data = json.loads(content)
+    except gzip.BadGzipFile:
+        flash('壓縮檔案格式錯誤', 'danger')
+        return redirect(url_for('admin.data_management'))
     except json.JSONDecodeError as e:
         flash(f'JSON 格式錯誤: {str(e)}', 'danger')
         return redirect(url_for('admin.data_management'))

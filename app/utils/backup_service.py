@@ -1,6 +1,7 @@
 """備份服務 - 管理系統資料備份"""
 from __future__ import annotations
 
+import gzip
 import json
 import os
 import shutil
@@ -26,6 +27,7 @@ from ..models import (
     NavigationLink,
     Role,
     SiteSetting,
+    SiteSettingKey,
     SystemBackup,
     User,
     YouTubeVideo,
@@ -43,6 +45,9 @@ class BackupService:
 
     # 備份檔案字首
     BACKUP_PREFIX = "system_backup"
+
+    # Discord Webhook 上傳限制 (Discord API 上限為 25 MB)
+    DISCORD_UPLOAD_LIMIT = 25 * 1024 * 1024
 
     def __init__(self, session=None):
         """初始化備份服務"""
@@ -241,12 +246,13 @@ class BackupService:
 
             # 生成檔案名稱和路徑
             timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f")[:-3]  # 包含毫秒
-            filename = f"{cls.BACKUP_PREFIX}_{timestamp}.json"
+            filename = f"{cls.BACKUP_PREFIX}_{timestamp}.json.gz"
             filepath = cls.BACKUP_DIR / filename
 
-            # 寫入檔案
+            # 寫入壓縮檔案
             json_data = json.dumps(data, ensure_ascii=False, indent=2)
-            filepath.write_text(json_data, encoding="utf-8")
+            with gzip.open(filepath, "wt", encoding="utf-8") as f:
+                f.write(json_data)
 
             # 取得檔案大小
             file_size = filepath.stat().st_size
@@ -259,7 +265,7 @@ class BackupService:
                 backup_type=backup_type,
                 created_by=created_by,
                 description=description,
-                is_compressed=False,
+                is_compressed=True,
             )
             session.add(backup_record)
             session.commit()
@@ -267,6 +273,9 @@ class BackupService:
             current_app.logger.info(
                 f"Backup created: {filename} ({service._format_size(file_size)})"
             )
+
+            # 傳送備份通知到 Discord（如果有設定 webhook）
+            cls._notify_discord_webhook(backup_record)
 
             return backup_record
 
@@ -446,3 +455,91 @@ class BackupService:
                 return f"{size:.2f} {unit}"
             size /= 1024
         return f"{size:.2f} TB"
+
+    @classmethod
+    def _notify_discord_webhook(cls, backup: SystemBackup) -> None:
+        """將備份資訊推送到 Discord Webhook（如果已設定）。"""
+        try:
+            webhook_url = SiteSetting.get(SiteSettingKey.BACKUP_DISCORD_WEBHOOK_URL)
+        except Exception as exc:  # pragma: no cover - defensive guard
+            current_app.logger.warning(f"Failed to load Discord webhook setting: {exc}")
+            return
+
+        if not webhook_url:
+            return
+
+        normalized_url = webhook_url.strip()
+        if not normalized_url.startswith("https://discord.com/api/webhooks/") and not normalized_url.startswith(
+            "https://discordapp.com/api/webhooks/"
+        ):
+            current_app.logger.warning("Discord webhook URL 格式不正確，已略過通知")
+            return
+
+        file_path = Path(backup.filepath)
+        if not file_path.exists():
+            current_app.logger.warning(
+                "Backup file missing when attempting Discord notification: %s", backup.filename
+            )
+            return
+
+        # 準備訊息內容
+        initiator = backup.creator.username if backup.creator else "系統排程"
+        backup_type_label = "自動備份" if backup.backup_type == "auto" else "手動備份"
+        timestamp = backup.created_at.replace(microsecond=0).isoformat() + "Z"
+
+        embed = {
+            "title": backup.filename,
+            "color": 0x5865F2,
+            "fields": [
+                {"name": "備份類型", "value": backup_type_label, "inline": True},
+                {"name": "檔案大小", "value": backup.get_display_size(), "inline": True},
+                {"name": "建立者", "value": initiator, "inline": True},
+            ],
+            "timestamp": timestamp,
+        }
+
+        if backup.description:
+            embed["description"] = backup.description
+
+        attach_file = backup.file_size <= cls.DISCORD_UPLOAD_LIMIT
+
+        if not attach_file:
+            embed["fields"].append(
+                {
+                    "name": "附件狀態",
+                    "value": "檔案超過 25MB，請至系統後台下載備份。",
+                    "inline": False,
+                }
+            )
+
+        payload = {
+            "content": f"🛡️ {backup_type_label}完成：{backup.filename}",
+            "embeds": [embed],
+        }
+
+        try:
+            import requests
+        except ModuleNotFoundError:  # pragma: no cover - environment guard
+            current_app.logger.error("requests 套件不存在，無法推送 Discord Webhook")
+            return
+
+        try:
+            if attach_file:
+                with file_path.open("rb") as fh:
+                    response = requests.post(
+                        normalized_url,
+                        data={"payload_json": json.dumps(payload, ensure_ascii=False)},
+                        files={"file": (backup.filename, fh, "application/gzip")},
+                        timeout=30,
+                    )
+            else:
+                response = requests.post(normalized_url, json=payload, timeout=15)
+
+            if response.status_code not in (200, 204):
+                current_app.logger.warning(
+                    "Discord webhook 回應非預期狀態 %s: %s",
+                    response.status_code,
+                    response.text[:2000],
+                )
+        except Exception as exc:  # pragma: no cover - network call
+            current_app.logger.error(f"Failed to send backup notification to Discord: {exc}")

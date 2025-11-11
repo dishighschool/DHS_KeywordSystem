@@ -203,10 +203,11 @@
                 </div>
                 <div class="card-body">
                     <form action="{{ url_for('admin.import_system_data') }}" method="post" enctype="multipart/form-data" id="importForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="mb-3">
-                            <label for="import_file" class="form-label">選擇匯入檔案 (JSON)</label>
-                            <input type="file" class="form-control" id="import_file" name="import_file" accept=".json" required>
-                            <small class="form-text text-muted">只接受從本系統匯出的 JSON 檔案</small>
+                            <label for="import_file" class="form-label">選擇匯入檔案 (JSON / JSON.GZ)</label>
+                            <input type="file" class="form-control" id="import_file" name="import_file" accept=".json,.json.gz,.gz" required>
+                            <small class="form-text text-muted">支援 JSON 或壓縮的 JSON.GZ 格式</small>
                         </div>
 
                         <div class="mb-3">
@@ -337,7 +338,7 @@
                 </div>
 
                 <!-- 建立手動備份 -->
-                <div class="col-md-6">
+                <div class="col-lg-4 col-md-6">
                     <div class="card h-100">
                         <div class="card-header bg-success text-white">
                             <h6 class="mb-0"><i class="bi bi-plus-circle"></i> 建立手動備份</h6>
@@ -358,7 +359,7 @@
                 </div>
 
                 <!-- 清理舊備份 -->
-                <div class="col-md-6">
+                <div class="col-lg-4 col-md-6">
                     <div class="card h-100">
                         <div class="card-header bg-warning text-dark">
                             <h6 class="mb-0"><i class="bi bi-trash"></i> 清理舊備份</h6>
@@ -374,6 +375,44 @@
                                 <button type="submit" class="btn btn-warning w-100">
                                     <i class="bi bi-trash"></i> 清理舊備份
                                 </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Discord Webhook 設定 -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0"><i class="bi bi-discord"></i> Discord 備份通知</h6>
+                        </div>
+                        <div class="card-body">
+                            {% if backup_webhook_url %}
+                            <div class="alert alert-success" role="alert">
+                                <i class="bi bi-check-circle"></i> 已啟用備份推送。
+                            </div>
+                            {% else %}
+                            <div class="alert alert-secondary" role="alert">
+                                <i class="bi bi-bell"></i> 尚未設定 Webhook，填入後可於 Discord 接收備份通知。
+                            </div>
+                            {% endif %}
+                            <form action="{{ url_for('admin.update_backup_webhook') }}" method="post">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <div class="mb-3">
+                                    <label for="webhook_url" class="form-label">Discord Webhook URL</label>
+                                    <input type="url" class="form-control" id="webhook_url" name="webhook_url" placeholder="https://discord.com/api/webhooks/..." value="{{ backup_webhook_url }}" autocomplete="off">
+                                    <small class="form-text text-muted">限使用 Discord 官方 Webhook，檔案將壓縮後傳送，超過 25MB 將僅推送通知。</small>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-save"></i> 儲存設定
+                                    </button>
+                                    {% if backup_webhook_url %}
+                                    <button type="submit" class="btn btn-outline-secondary" name="action" value="clear" onclick="return confirm('確定要停用 Discord 備份推送嗎？');">
+                                        <i class="bi bi-x-circle"></i> 停用推送
+                                    </button>
+                                    {% endif %}
+                                </div>
                             </form>
                         </div>
                     </div>

@@ -191,6 +191,7 @@ class SiteSettingKey(enum.StrEnum):
     FAVICON_FILE = "favicon_file"
     REGISTRATION_USER_KEY = "registration_user_key"
     REGISTRATION_ADMIN_KEY = "registration_admin_key"
+    BACKUP_DISCORD_WEBHOOK_URL = "backup_discord_webhook_url"
 
 
 class SiteSetting(TimestampMixin, BaseModel):
@@ -217,6 +218,14 @@ class SiteSetting(TimestampMixin, BaseModel):
     @classmethod
     def as_dict(cls) -> dict[str, str]:  # pragma: no cover - simple mapping
         return {row.key: row.value for row in cls.query.all()}
+
+    @classmethod
+    def delete(cls, key: SiteSettingKey) -> None:
+        """Remove a stored site setting value if it exists."""
+        record = cls.query.filter_by(key=key.value).first()
+        if record:
+            db.session.delete(record)
+            db.session.commit()
 
 
 class EditLogAction(enum.StrEnum):

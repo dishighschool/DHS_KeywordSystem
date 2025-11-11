@@ -102,6 +102,31 @@ def test_data_management_page_access(client, admin_user):
     assert '系統資料管理' in response.get_data(as_text=True)
 
 
+def test_update_backup_webhook_settings(client, admin_user):
+    """測試設定與停用 Discord 備份 Webhook。"""
+    webhook_url = "https://discord.com/api/webhooks/1234567890/test"
+
+    response = client.post(
+        url_for('admin.update_backup_webhook'),
+        data={'webhook_url': webhook_url},
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    assert '已更新' in response.get_data(as_text=True)
+    assert SiteSetting.get(SiteSettingKey.BACKUP_DISCORD_WEBHOOK_URL) == webhook_url
+
+    response = client.post(
+        url_for('admin.update_backup_webhook'),
+        data={'action': 'clear'},
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    assert '已停用' in response.get_data(as_text=True)
+    assert SiteSetting.get(SiteSettingKey.BACKUP_DISCORD_WEBHOOK_URL) is None
+
+
 def test_export_system_data(client, admin_user, sample_data):
     """測試系統資料匯出"""
     response = client.get(url_for('admin.export_system_data'))
@@ -255,7 +280,91 @@ def test_import_non_json_file(client, admin_user):
     )
     
     assert response.status_code == 200
-    assert '只能匯入 JSON 檔案' in response.get_data(as_text=True)
+    assert '只能匯入 JSON 或 JSON.GZ 檔案' in response.get_data(as_text=True)
+
+
+def test_import_compressed_backup(client, admin_user):
+    """測試匯入壓縮的備份檔案 (.json.gz)"""
+    import gzip
+    from app.extensions import db
+    
+    # 準備匯入資料
+    import_data = {
+        'export_info': {
+            'version': '1.0',
+            'exported_at': '2024-01-01T00:00:00',
+            'exported_by': 'Test',
+            'exported_by_id': 1
+        },
+        'users': [
+            {
+                'id': 9998,
+                'discord_id': 'compressed_user_999',
+                'username': 'Compressed User',
+                'avatar_hash': None,
+                'role': 'user',
+                'is_active': True,
+                'created_at': '2024-01-01T00:00:00'
+            }
+        ],
+        'categories': [
+            {
+                'id': 9998,
+                'name': '壓縮測試分類',
+                'slug': 'compressed-category',
+                'description': '測試壓縮匯入',
+                'position': 0,
+                'icon': 'bi-file-zip',
+                'is_public': True,
+                'created_at': '2024-01-01T00:00:00'
+            }
+        ],
+        'keywords': [],
+        'aliases': [],
+        'videos': [],
+        'navigation_links': [],
+        'footer_links': [],
+        'announcements': [],
+        'site_settings': [],
+        'goal_lists': [],
+        'goal_items': []
+    }
+    
+    # 創建壓縮的 JSON 檔案
+    json_data = json.dumps(import_data, ensure_ascii=False)
+    compressed_data = gzip.compress(json_data.encode('utf-8'))
+    file_data = BytesIO(compressed_data)
+    
+    # 執行匯入
+    response = client.post(
+        url_for('admin.import_system_data'),
+        data={
+            'import_file': (file_data, 'test_import.json.gz'),
+            'import_mode': 'merge',
+            'import_users': 'on',
+            'import_categories': 'on',
+            'import_keywords': 'on'
+        },
+        content_type='multipart/form-data',
+        follow_redirects=True
+    )
+    
+    assert response.status_code == 200
+    assert '匯入成功' in response.get_data(as_text=True)
+    
+    # 驗證資料已匯入
+    imported_user = User.query.filter_by(discord_id='compressed_user_999').first()
+    assert imported_user is not None
+    assert imported_user.username == 'Compressed User'
+    
+    imported_category = KeywordCategory.query.filter_by(slug='compressed-category').first()
+    assert imported_category is not None
+    assert imported_category.name == '壓縮測試分類'
+    
+    # 清理
+    db.session.delete(imported_user)
+    db.session.delete(imported_category)
+    db.session.commit()
 
 
 def test_export_import_roundtrip(client, admin_user, sample_data):

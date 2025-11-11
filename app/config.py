@@ -53,5 +53,5 @@ class Config:
 
     # 檔案上傳設定
     UPLOAD_FOLDER = BASE_DIR / "app" / "static" / "uploads"
-    MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB max file size
+    MAX_CONTENT_LENGTH = 500 * 1024 * 1024  # 5MB max file size
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "svg", "webp"}
