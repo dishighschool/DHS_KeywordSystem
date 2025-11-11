@@ -2,8 +2,12 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
   <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="theme-color" content="#667eea">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>編輯關鍵字 - {{ keyword.title }}</title>
   
   
@@ -14,10 +18,14 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/keyword-editor.css') }}">
 </head>
 <body>
+<a href="#main-content" class="skip-to-content">跳至主要內容</a>
 <div class="keyword-editor-container">
   
-  <div class="editor-topbar">
+  <div class="editor-topbar" role="banner">
     <div class="topbar-left">
+      <button type="button" class="btn-toggle-sidebar" onclick="toggleSidebar()" aria-label="開啟選單">
+        <i class="bi bi-list"></i>
+      </button>
       <a href="{{ url_for('admin.content_manager') }}" class="btn-back">
         <i class="bi bi-arrow-left"></i>
       </a>
@@ -58,7 +66,9 @@
   
   <div class="editor-main">
     
-    <div class="editor-sidebar">
+    <div class="sidebar-overlay" onclick="toggleSidebar()" aria-hidden="true"></div>
+    
+    <div class="editor-sidebar" role="navigation" aria-label="編輯器導航">
       <nav class="editor-nav">
         <a href="#section-basic" class="editor-nav-item active" data-section="basic">
           <i class="bi bi-file-text"></i>
@@ -96,7 +106,7 @@
     </div>
 
     
-    <div class="editor-content">
+    <div class="editor-content" id="main-content" role="main">
         
         {# 必填欄位提示 #}
         <div class="alert alert-warning alert-dismissible fade show m-3" role="alert" id="required-fields-alert" style="display: none;">

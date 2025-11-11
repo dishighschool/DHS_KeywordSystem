@@ -9,6 +9,7 @@
 {% block styles %}
 {{ super() }}
 <style>
+    /* 基礎樣式 */
     .goal-item {
         transition: all 0.3s ease;
         border-left: 4px solid transparent;
@@ -31,6 +32,384 @@
     .completion-badge {
         font-size: 0.75rem;
         padding: 0.25rem 0.5rem;
+    }
+    
+    /* 搜尋和篩選區域樣式 */
+    .search-filter-section {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .search-input-wrapper {
+        position: relative;
+        flex: 1;
+        max-width: 500px;
+    }
+    
+    .search-input-wrapper input {
+        padding-right: 2.5rem;
+        border: 2px solid #dee2e6;
+        transition: all 0.3s ease;
+    }
+    
+    .search-input-wrapper input:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+    }
+    
+    .search-input-wrapper .input-group-text {
+        background: white;
+        border: 2px solid #dee2e6;
+        border-right: none;
+    }
+    
+    .search-input-wrapper input:focus ~ .input-group-text {
+        border-color: #0d6efd;
+    }
+    
+    .filter-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .filter-btn {
+        padding: 0.375rem 1rem;
+        border-radius: 2rem;
+        border: 2px solid transparent;
+        background: white;
+        color: #6c757d;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .filter-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .filter-btn.active {
+        color: white;
+    }
+    
+    .filter-btn.filter-all.active {
+        background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        border-color: #6c757d;
+    }
+    
+    .filter-btn.filter-pending.active {
+        background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+        border-color: #ffc107;
+    }
+    
+    .filter-btn.filter-completed.active {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        border-color: #28a745;
+    }
+    
+    .search-stats {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: white;
+        border-radius: 2rem;
+        border: 2px solid #dee2e6;
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    .search-stats .stat-number {
+        font-weight: 700;
+        color: #0d6efd;
+    }
+    
+    .clear-search-btn {
+        position: absolute;
+        right: 0.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        border: none;
+        background: transparent;
+        color: #6c757d;
+        padding: 0.25rem 0.5rem;
+        cursor: pointer;
+        border-radius: 0.25rem;
+        transition: all 0.2s ease;
+    }
+    
+    .clear-search-btn:hover {
+        background: #e9ecef;
+        color: #495057;
+    }
+    
+    /* ============================================================================
+       行動端優化 - 手機尺寸 (≤768px)
+       ============================================================================ */
+    @media (max-width: 768px) {
+        /* 頂部按鈕區優化 */
+        .d-flex.justify-content-between.mb-4 {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .d-flex.justify-content-between.mb-4 .btn-group {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .d-flex.justify-content-between.mb-4 .btn {
+            flex: 1;
+            min-width: calc(50% - 0.25rem);
+            font-size: 0.8125rem;
+            padding: 0.625rem 0.5rem;
+            white-space: normal;
+            line-height: 1.3;
+            min-height: 44px;
+        }
+        
+        .d-flex.justify-content-between.mb-4 .btn i {
+            font-size: 0.875rem;
+            display: block;
+            margin: 0 auto 0.125rem;
+        }
+        
+        .d-flex.justify-content-between.mb-4 .btn .me-2,
+        .d-flex.justify-content-between.mb-4 .btn .me-1 {
+            margin-right: 0 !important;
+        }
+        
+        /* 資訊卡片優化 */
+        .row.mb-4 {
+            margin-bottom: 0.75rem !important;
+        }
+        
+        .col-md-8,
+        .col-md-4 {
+            margin-bottom: 0.75rem;
+        }
+        
+        .admin-card-body {
+            padding: 1rem;
+        }
+        
+        .progress {
+            height: 8px !important;
+        }
+        
+        /* 搜尋和篩選區優化 */
+        .search-filter-section {
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .d-flex.gap-3 {
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+        }
+        
+        .search-input-wrapper {
+            max-width: 100%;
+            order: 1;
+        }
+        
+        .search-input-wrapper input {
+            font-size: 0.9375rem;
+            padding: 0.625rem;
+        }
+        
+        .clear-search-btn {
+            right: 0.375rem;
+        }
+        
+        .filter-buttons {
+            width: 100%;
+            justify-content: flex-start;
+            order: 2;
+        }
+        
+        .filter-btn {
+            font-size: 0.8125rem;
+            padding: 0.375rem 0.875rem;
+            flex: 1;
+            min-width: calc(33.333% - 0.334rem);
+            text-align: center;
+        }
+        
+        .search-stats {
+            width: 100%;
+            justify-content: center;
+            order: 3;
+            font-size: 0.8125rem;
+            padding: 0.5rem 0.875rem;
+        }
+        
+        /* 目標項目列表優化 */
+        .goal-item {
+            padding: 0.875rem !important;
+            border-left-width: 3px !important;
+        }
+        
+        .goal-item .d-flex {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .goal-item .d-flex > div:first-child {
+            width: 100%;
+        }
+        
+        .goal-item-title {
+            font-size: 0.9375rem;
+            line-height: 1.5;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        
+        .goal-item small {
+            font-size: 0.8125rem;
+            line-height: 1.4;
+        }
+        
+        .goal-item .btn-group {
+            width: 100%;
+            display: flex;
+            gap: 0.375rem;
+        }
+        
+        .goal-item .btn {
+            flex: 1;
+            font-size: 0.8125rem;
+            padding: 0.625rem 0.5rem;
+            white-space: nowrap;
+            min-height: 44px;
+        }
+        
+        .goal-item .btn i {
+            font-size: 0.9375rem;
+        }
+        
+        .completion-badge {
+            font-size: 0.7rem !important;
+            padding: 0.25rem 0.5rem !important;
+        }
+        
+        /* 分頁優化 */
+        .pagination {
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+        
+        .pagination .page-item {
+            margin: 0 !important;
+        }
+        
+        .pagination .page-link {
+            padding: 0.375rem 0.625rem;
+            font-size: 0.875rem;
+        }
+        
+        /* 隱藏部分分頁按鈕在小螢幕 */
+        .pagination .page-item:not(.active):not(:first-child):not(:last-child):not(:nth-child(2)):not(:nth-last-child(2)) {
+            display: none;
+        }
+        
+        /* 每頁顯示數量選擇器 */
+        .d-flex.align-items-center.gap-2 select {
+            font-size: 0.875rem;
+            padding: 0.375rem 0.625rem;
+        }
+        
+        /* 模態框優化 */
+        .modal-dialog {
+            margin: 0.5rem;
+        }
+        
+        .modal-body {
+            padding: 1rem;
+        }
+        
+        .modal-body input,
+        .modal-body textarea {
+            font-size: 0.9375rem;
+        }
+        
+        .modal-footer {
+            padding: 0.75rem 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .modal-footer .btn {
+            flex: 1;
+            min-width: calc(50% - 0.25rem);
+        }
+        
+        /* 別名搜尋結果優化 */
+        #aliasResults .list-group-item {
+            padding: 0.75rem !important;
+            font-size: 0.875rem;
+        }
+        
+        #aliasResults .fw-semibold {
+            font-size: 0.9375rem;
+        }
+        
+        #aliasResults small {
+            font-size: 0.75rem;
+        }
+        
+        /* 空狀態優化 */
+        #noResultsMessage {
+            padding: 2rem 1rem !important;
+        }
+        
+        #noResultsMessage i {
+            font-size: 2.5rem !important;
+        }
+        
+        #noResultsMessage p {
+            font-size: 0.9375rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .d-flex.justify-content-between.mb-4 .btn {
+            min-width: 100%;
+            font-size: 0.75rem;
+            padding: 0.625rem 0.375rem;
+        }
+        
+        .d-flex.justify-content-between.mb-4 .btn i {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .filter-btn {
+            min-width: calc(50% - 0.25rem);
+            font-size: 0.75rem;
+            padding: 0.5rem 0.625rem;
+        }
+        
+        .goal-item-title {
+            font-size: 0.875rem;
+        }
+        
+        .goal-item .btn {
+            font-size: 0.75rem;
+            padding: 0.5rem 0.375rem;
+        }
+        
+        .pagination .page-link {
+            padding: 0.3125rem 0.5rem;
+            font-size: 0.8125rem;
+        }
     }
 </style>
 {% endblock %}
@@ -136,20 +515,84 @@
 
 <div class="admin-card">
     <div class="admin-card-header">
-        <h5 class="admin-card-title">
-            <i class="admin-card-icon bi bi-list-ul"></i>
-            關鍵字列表
-        </h5>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="admin-card-title mb-0">
+                <i class="admin-card-icon bi bi-list-ul"></i>
+                關鍵字列表
+            </h5>
+            {% if pagination.pages > 1 %}
+            <div class="d-flex align-items-center gap-2">
+                <small class="text-muted">每頁:</small>
+                <select class="form-select form-select-sm" id="perPageSelect" style="width: auto;">
+                    <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+                    <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                </select>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- 搜尋和篩選功能 -->
+        <form method="get" id="searchFilterForm" class="search-filter-section">
+            <div class="d-flex gap-3 align-items-center flex-wrap">
+                <!-- 搜尋框 -->
+                <div class="search-input-wrapper">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white">
+                            <i class="bi bi-search text-primary"></i>
+                        </span>
+                        <input type="text" 
+                               class="form-control" 
+                               name="search" 
+                               id="itemSearchInput" 
+                               placeholder="搜尋關鍵字標題..."
+                               value="{{ search_query }}">
+                        {% if search_query %}
+                        <button class="clear-search-btn" type="button" id="clearSearchBtn" title="清除搜尋">
+                            <i class="bi bi-x-circle-fill"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- 狀態篩選按鈕 -->
+                <div class="filter-buttons">
+                    <button type="button" 
+                            class="filter-btn filter-all {% if status_filter == 'all' %}active{% endif %}" 
+                            data-status="all">
+                        <i class="bi bi-list-ul me-1"></i>全部
+                    </button>
+                    <button type="button" 
+                            class="filter-btn filter-pending {% if status_filter == 'pending' %}active{% endif %}" 
+                            data-status="pending">
+                        <i class="bi bi-clock me-1"></i>待完成
+                    </button>
+                    <button type="button" 
+                            class="filter-btn filter-completed {% if status_filter == 'completed' %}active{% endif %}" 
+                            data-status="completed">
+                        <i class="bi bi-check-circle me-1"></i>已完成
+                    </button>
+                </div>
+                
+                <!-- 搜尋統計 -->
+                <div class="search-stats ms-auto">
+                    <i class="bi bi-info-circle text-primary"></i>
+                    <span>顯示 <span class="stat-number">{{ pagination.total }}</span> / <span class="stat-number">{{ goal_list.total_items }}</span> 項</span>
+                </div>
+            </div>
+            <input type="hidden" name="status" id="statusInput" value="{{ status_filter }}">
+            <input type="hidden" name="per_page" value="{{ per_page }}">
+        </form>
     </div>
     <div class="admin-card-body p-0">
-        {% if goal_list.items %}
-        <div class="list-group list-group-flush">
-            {% for item in goal_list.items %}
+        {% if pagination.items %}
+        <div class="list-group list-group-flush" id="itemsList">
+            {% for item in pagination.items %}
             <div class="list-group-item goal-item {% if item.is_completed %}completed{% endif %}" 
                  data-item-id="{{ item.id }}">
                 <div class="d-flex align-items-center">
                     <div class="me-3">
-                        <span class="badge bg-secondary">{{ loop.index }}</span>
+                        <span class="badge bg-secondary item-index">{{ ((pagination.page - 1) * per_page) + loop.index }}</span>
                     </div>
                     
                     <div class="flex-grow-1">
@@ -212,11 +655,74 @@
             {% endfor %}
         </div>
         {% else %}
-        <div class="text-center py-5">
-            <p class="text-muted">此清單尚無項目</p>
+        <div class="text-center py-5" id="noResultsMessage">
+            <i class="bi bi-search" style="font-size: 3rem; color: #dee2e6;"></i>
+            <p class="text-muted mt-3 mb-2">
+                {% if search_query or status_filter != 'all' %}
+                找不到符合的項目
+                {% else %}
+                此清單尚無項目
+                {% endif %}
+            </p>
+            {% if search_query or status_filter != 'all' %}
+            <button class="btn btn-sm btn-outline-primary mt-2" onclick="clearSearchAndFilter()">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>清除篩選
+            </button>
+            {% endif %}
         </div>
         {% endif %}
     </div>
+    
+    {% if pagination.pages > 1 %}
+    <div class="admin-card-footer">
+        <nav>
+            <ul class="pagination pagination-sm justify-content-center mb-0">
+                {% if pagination.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('admin.view_goal_list', list_id=goal_list.id, page=pagination.prev_num, per_page=per_page, search=search_query, status=status_filter) }}">
+                        <i class="bi bi-chevron-left"></i> 上一頁
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="bi bi-chevron-left"></i> 上一頁</span>
+                </li>
+                {% endif %}
+
+                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                    <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('admin.view_goal_list', list_id=goal_list.id, page=page_num, per_page=per_page, search=search_query, status=status_filter) }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if pagination.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('admin.view_goal_list', list_id=goal_list.id, page=pagination.next_num, per_page=per_page, search=search_query, status=status_filter) }}">
+                        下一頁 <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">下一頁 <i class="bi bi-chevron-right"></i></span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        
+        <div class="text-center mt-2">
+            <small class="text-muted">
+                第 {{ pagination.page }} / {{ pagination.pages }} 頁，
+                共 {{ pagination.total }} 個項目
+            </small>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <div class="modal fade" id="aliasModal" tabindex="-1">
@@ -822,6 +1328,81 @@
             alert('操作失敗');
         });
     }
+    
+    // ========== 每頁顯示數量變更 ==========
+    const perPageSelect = document.getElementById('perPageSelect');
+    if (perPageSelect) {
+        perPageSelect.addEventListener('change', function() {
+            const form = document.getElementById('searchFilterForm');
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('per_page', this.value);
+            currentUrl.searchParams.set('page', '1');
+            window.location.href = currentUrl.toString();
+        });
+    }
+    
+    // ========== 搜尋和篩選功能 ==========
+    const searchForm = document.getElementById('searchFilterForm');
+    const searchInput = document.getElementById('itemSearchInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    const statusInput = document.getElementById('statusInput');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    
+    // 搜尋輸入處理 - 使用防抖延遲提交
+    let searchTimeout;
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(function() {
+                searchForm.submit();
+            }, 500);  // 500ms 延遲
+        });
+        
+        // Enter 鍵立即提交
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                clearTimeout(searchTimeout);
+                searchForm.submit();
+            }
+        });
+    }
+    
+    // 清除搜尋按鈕
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            searchForm.submit();
+        });
+    }
+    
+    // 狀態篩選按鈕
+    filterButtons.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const status = this.getAttribute('data-status');
+            
+            // 更新按鈕狀態
+            filterButtons.forEach(function(b) {
+                b.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            // 更新隱藏的 input 值
+            statusInput.value = status;
+            
+            // 提交表單
+            searchForm.submit();
+        });
+    });
+    
+    // 全域清除函數
+    window.clearSearchAndFilter = function() {
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.delete('search');
+        currentUrl.searchParams.delete('status');
+        currentUrl.searchParams.set('page', '1');
+        window.location.href = currentUrl.toString();
+    };
 })();
 </script>
 {% endblock %}

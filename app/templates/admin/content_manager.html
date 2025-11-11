@@ -209,84 +209,88 @@
                   </div>
                 </div>
               </div>
-              <div class="col-status">
-                <div class="dropdown">
-                  <button class="status-dropdown-btn {% if keyword.is_public %}status-public{% else %}status-private{% endif %}" 
-                          type="button" 
-                          data-bs-toggle="dropdown" 
-                          aria-expanded="false"
-                          data-keyword-id="{{ keyword.id }}"
-                          data-current-status="{{ 'true' if keyword.is_public else 'false' }}">
-                    {% if keyword.is_public %}
-                    <i class="bi bi-eye"></i> 公開
-                    {% else %}
-                    <i class="bi bi-eye-slash"></i> 隱藏
+              <div class="mobile-meta-row">
+                <div class="mobile-status-stats-row">
+                  <div class="col-status">
+                    <div class="dropdown">
+                      <button class="status-dropdown-btn {% if keyword.is_public %}status-public{% else %}status-private{% endif %}" 
+                              type="button" 
+                              data-bs-toggle="dropdown" 
+                              aria-expanded="false"
+                              data-keyword-id="{{ keyword.id }}"
+                              data-current-status="{{ 'true' if keyword.is_public else 'false' }}">
+                        {% if keyword.is_public %}
+                        <i class="bi bi-eye"></i> 公開
+                        {% else %}
+                        <i class="bi bi-eye-slash"></i> 隱藏
+                        {% endif %}
+                        <i class="bi bi-chevron-down ms-1" style="font-size: 0.7rem;"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-sm">
+                        <li>
+                          <a class="dropdown-item status-option-public {% if keyword.is_public %}active{% endif %}" 
+                             href="#" 
+                             data-status="true"
+                             onclick="changeKeywordVisibility({{ keyword.id }}, true, event)">
+                            <i class="bi bi-eye text-success me-2"></i>公開
+                            {% if keyword.is_public %}<i class="bi bi-check-lg ms-auto text-primary"></i>{% endif %}
+                          </a>
+                        </li>
+                        <li>
+                          <a class="dropdown-item status-option-private {% if not keyword.is_public %}active{% endif %}" 
+                             href="#" 
+                             data-status="false"
+                             onclick="changeKeywordVisibility({{ keyword.id }}, false, event)">
+                            <i class="bi bi-eye-slash text-warning me-2"></i>隱藏
+                            {% if not keyword.is_public %}<i class="bi bi-check-lg ms-auto text-primary"></i>{% endif %}
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div class="col-stats">
+                    <div class="keyword-stats">
+                      <span class="stat-item" title="觀看次數">
+                        <i class="bi bi-eye-fill text-info"></i> {{ keyword.view_count }}
+                      </span>
+                      {% if keyword.videos %}
+                      <span class="stat-item" title="影片數量">
+                        <i class="bi bi-camera-video text-danger"></i> {{ keyword.videos|length }}
+                      </span>
+                      {% endif %}
+                      {% if keyword.aliases %}
+                      <span class="stat-item" title="別名數量">
+                        <i class="bi bi-tags text-primary"></i> {{ keyword.aliases|length }}
+                      </span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                <div class="col-date d-none d-md-block">
+                  <div class="keyword-dates">
+                    <div class="date-item">
+                      <i class="bi bi-clock me-1"></i>
+                      <span title="更新時間">{{ keyword.updated_at.strftime('%Y-%m-%d') }}</span>
+                    </div>
+                    <div class="date-author">
+                      <i class="bi bi-person-circle me-1"></i>{{ keyword.author.username }}
+                    </div>
+                  </div>
+                </div>
+                <div class="col-actions">
+                  <div class="btn-group btn-group-sm">
+                    <a class="btn btn-outline-secondary" href="{{ url_for('main.keyword_detail', category_slug=keyword.category.slug, slug=keyword.slug) }}" target="_blank" title="前台檢視">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                    <a class="btn btn-primary" href="{{ url_for('admin.edit_keyword', keyword_id=keyword.id) }}" title="編輯">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+                    {% if current_user.is_admin() %}
+                    <button class="btn btn-danger" onclick="deleteKeyword({{ keyword.id }}, '{{ keyword.title }}')" title="刪除">
+                      <i class="bi bi-trash"></i>
+                    </button>
                     {% endif %}
-                    <i class="bi bi-chevron-down ms-1" style="font-size: 0.7rem;"></i>
-                  </button>
-                  <ul class="dropdown-menu dropdown-menu-sm">
-                    <li>
-                      <a class="dropdown-item status-option-public {% if keyword.is_public %}active{% endif %}" 
-                         href="#" 
-                         data-status="true"
-                         onclick="changeKeywordVisibility({{ keyword.id }}, true, event)">
-                        <i class="bi bi-eye text-success me-2"></i>公開
-                        {% if keyword.is_public %}<i class="bi bi-check-lg ms-auto text-primary"></i>{% endif %}
-                      </a>
-                    </li>
-                    <li>
-                      <a class="dropdown-item status-option-private {% if not keyword.is_public %}active{% endif %}" 
-                         href="#" 
-                         data-status="false"
-                         onclick="changeKeywordVisibility({{ keyword.id }}, false, event)">
-                        <i class="bi bi-eye-slash text-warning me-2"></i>隱藏
-                        {% if not keyword.is_public %}<i class="bi bi-check-lg ms-auto text-primary"></i>{% endif %}
-                      </a>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-              <div class="col-stats">
-                <div class="keyword-stats">
-                  <span class="stat-item" title="觀看次數">
-                    <i class="bi bi-eye-fill text-info"></i> {{ keyword.view_count }}
-                  </span>
-                  {% if keyword.videos %}
-                  <span class="stat-item" title="影片數量">
-                    <i class="bi bi-camera-video text-danger"></i> {{ keyword.videos|length }}
-                  </span>
-                  {% endif %}
-                  {% if keyword.aliases %}
-                  <span class="stat-item" title="別名數量">
-                    <i class="bi bi-tags text-primary"></i> {{ keyword.aliases|length }}
-                  </span>
-                  {% endif %}
-                </div>
-              </div>
-              <div class="col-date">
-                <div class="keyword-dates">
-                  <div class="date-item">
-                    <i class="bi bi-clock me-1"></i>
-                    <span title="更新時間">{{ keyword.updated_at.strftime('%Y-%m-%d') }}</span>
                   </div>
-                  <div class="date-author">
-                    <i class="bi bi-person-circle me-1"></i>{{ keyword.author.username }}
-                  </div>
-                </div>
-              </div>
-              <div class="col-actions">
-                <div class="btn-group btn-group-sm">
-                  <a class="btn btn-outline-secondary" href="{{ url_for('main.keyword_detail', category_slug=keyword.category.slug, slug=keyword.slug) }}" target="_blank" title="前台檢視">
-                    <i class="bi bi-eye"></i>
-                  </a>
-                  <a class="btn btn-primary" href="{{ url_for('admin.edit_keyword', keyword_id=keyword.id) }}" title="編輯">
-                    <i class="bi bi-pencil"></i>
-                  </a>
-                  {% if current_user.is_admin() %}
-                  <button class="btn btn-danger" onclick="deleteKeyword({{ keyword.id }}, '{{ keyword.title }}')" title="刪除">
-                    <i class="bi bi-trash"></i>
-                  </button>
-                  {% endif %}
                 </div>
               </div>
             </div>

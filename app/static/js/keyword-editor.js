@@ -54,6 +54,11 @@ function initKeywordEditor() {
       });
       
       window.location.hash = targetSection;
+      
+      // 在行動端點擊導航項目後自動關閉側邊欄
+      if (window.innerWidth <= 992) {
+        closeSidebar();
+      }
     });
   });
 
@@ -68,6 +73,7 @@ function initKeywordEditor() {
   initMarkdownEditor();
   checkRequiredFields();
   setupRequiredFieldsMonitoring();
+  initMobileOptimizations();
 
   const form = document.getElementById('keywordForm');
   if (form) {
@@ -922,6 +928,134 @@ function saveDraft() {
   });
 }
 
+/**
+ * 切換側邊欄顯示/隱藏 (行動端)
+ */
+function toggleSidebar() {
+  const sidebar = document.querySelector('.editor-sidebar');
+  const overlay = document.querySelector('.sidebar-overlay');
+  
+  if (sidebar && overlay) {
+    const isOpen = sidebar.classList.contains('show');
+    
+    if (isOpen) {
+      closeSidebar();
+    } else {
+      openSidebar();
+    }
+  }
+}
+
+/**
+ * 開啟側邊欄
+ */
+function openSidebar() {
+  const sidebar = document.querySelector('.editor-sidebar');
+  const overlay = document.querySelector('.sidebar-overlay');
+  
+  if (sidebar && overlay) {
+    sidebar.classList.add('show');
+    overlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+/**
+ * 關閉側邊欄
+ */
+function closeSidebar() {
+  const sidebar = document.querySelector('.editor-sidebar');
+  const overlay = document.querySelector('.sidebar-overlay');
+  
+  if (sidebar && overlay) {
+    sidebar.classList.remove('show');
+    overlay.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+}
+
+/**
+ * 初始化行動端優化
+ */
+function initMobileOptimizations() {
+  // 防止 iOS Safari 在輸入時自動縮放
+  const metaViewport = document.querySelector('meta[name="viewport"]');
+  if (metaViewport && window.innerWidth <= 768) {
+    metaViewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+  }
+  
+  // 監聽視窗大小變化
+  let resizeTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+      // 當從行動端切換到桌面時,關閉側邊欄
+      if (window.innerWidth > 992) {
+        closeSidebar();
+      }
+    }, 250);
+  });
+  
+  // ESC 鍵關閉側邊欄
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && window.innerWidth <= 992) {
+      const sidebar = document.querySelector('.editor-sidebar');
+      if (sidebar && sidebar.classList.contains('show')) {
+        closeSidebar();
+        e.stopPropagation();
+      }
+    }
+  });
+  
+  // 優化觸控滾動
+  const scrollableElements = document.querySelectorAll('.editor-sidebar, .editor-content, .markdown-textarea, .markdown-preview-pane');
+  scrollableElements.forEach(el => {
+    if (el) {
+      el.style.webkitOverflowScrolling = 'touch';
+    }
+  });
+  
+  // 在小螢幕上預設使用編輯模式
+  if (window.innerWidth <= 768) {
+    const modeEdit = document.getElementById('mode-edit');
+    if (modeEdit && !modeEdit.checked) {
+      modeEdit.checked = true;
+      modeEdit.dispatchEvent(new Event('change'));
+    }
+  }
+}
+
+/**
+ * 優化的 Markdown 工具列插入功能 (行動端友好)
+ */
+function insertMarkdownMobile(prefix, suffix) {
+  const textarea = document.getElementById('description_markdown');
+  if (!textarea) return;
+
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selectedText = textarea.value.substring(start, end);
+  const beforeText = textarea.value.substring(0, start);
+  const afterText = textarea.value.substring(end);
+
+  const newText = beforeText + prefix + selectedText + suffix + afterText;
+  textarea.value = newText;
+
+  // 在行動端,將游標移到插入內容之後
+  const newCursorPos = start + prefix.length + selectedText.length + suffix.length;
+  textarea.setSelectionRange(newCursorPos, newCursorPos);
+  
+  // 確保 textarea 聚焦和可見
+  textarea.focus();
+  
+  // 滾動到游標位置
+  setTimeout(() => {
+    textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 100);
+  
+  textarea.dispatchEvent(new Event('input'));
+}
+
 window.keywordEditor = {
   init: initKeywordEditor,
   save: saveKeyword,
@@ -930,7 +1064,8 @@ window.keywordEditor = {
   addAlias: addAliasEntry,
   removeAlias: removeAliasEntry,
   insertMarkdown: insertMarkdown,
-  regenerateSEO: regenerateSEO
+  regenerateSEO: regenerateSEO,
+  toggleSidebar: toggleSidebar
 };
 
 /**

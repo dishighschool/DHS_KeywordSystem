@@ -525,22 +525,65 @@ body {
   font-size: 1.125rem;
 }
 
+/* ============================================================================
+   行動端優化 - 平板尺寸 (≤992px)
+   ============================================================================ */
 @media (max-width: 992px) {
   .editor-sidebar {
     position: fixed;
-    left: -240px;
+    left: -280px;
     top: 0;
     height: 100vh;
-    z-index: 1000;
-    transition: left 0.3s ease;
+    width: 280px;
+    z-index: 1050;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
   }
 
   .editor-sidebar.show {
     left: 0;
   }
 
+  /* 側邊欄遮罩 */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1049;
+    transition: opacity 0.3s ease;
+  }
+
+  .sidebar-overlay.show {
+    display: block;
+  }
+
+  /* 漢堡選單按鈕 */
+  .btn-toggle-sidebar {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    color: #495057;
+    font-size: 1.5rem;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+
+  .btn-toggle-sidebar:hover {
+    background: #e9ecef;
+  }
+
   .editor-content {
     padding: 1rem;
+    margin-left: 0;
   }
 
   .section-header,
@@ -550,39 +593,122 @@ body {
 
   .editor-topbar {
     padding: 0.75rem 1rem;
+    gap: 0.5rem;
   }
 
   .editor-title {
-    font-size: 1.125rem;
+    font-size: 1rem;
+  }
+
+  .editor-meta {
+    font-size: 0.8rem;
   }
 
   .topbar-right .btn span {
     display: none;
   }
+
+  .topbar-right .btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.625rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
+/* ============================================================================
+   行動端優化 - 手機尺寸 (≤768px)
+   ============================================================================ */
 @media (max-width: 768px) {
+  body {
+    overflow: auto;
+  }
+
+  .keyword-editor-container {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  /* 頂部欄優化 */
+  .editor-topbar {
+    padding: 0.5rem 0.75rem;
+    flex-wrap: nowrap;
+  }
+
+  .topbar-left {
+    gap: 0.5rem;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .btn-back {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+
+  .editor-title-info {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .editor-title {
+    font-size: 0.95rem;
+    line-height: 1.3;
+  }
+
   .editor-meta {
-    flex-direction: column;
-    gap: 0.375rem;
+    display: none; /* 在小螢幕隱藏元數據 */
   }
 
   .topbar-right {
-    gap: 0.5rem;
+    gap: 0.375rem;
+    flex-shrink: 0;
   }
 
   .topbar-right .btn {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.5rem;
+    font-size: 1.125rem;
   }
 
-  .section-body {
-    padding: 1rem;
+  .topbar-right .btn i {
+    margin: 0 !important;
+  }
+
+  /* 內容區域優化 */
+  .editor-main {
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  .editor-content {
+    padding: 0.75rem;
+    overflow: visible;
+    height: auto;
+  }
+
+  .editor-section {
+    margin-bottom: 1rem;
+    border-radius: 12px;
   }
 
   .section-header {
+    padding: 1.25rem 1rem 1rem;
     flex-direction: column;
     align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .section-title {
+    font-size: 1.25rem;
+  }
+
+  .section-description {
+    font-size: 0.875rem;
   }
 
   .section-header-actions {
@@ -591,40 +717,204 @@ body {
 
   .section-header-actions .btn-group {
     width: 100%;
+    display: flex;
   }
 
   .section-header-actions .btn-group label {
     flex: 1;
+    font-size: 0.875rem;
+    padding: 0.5rem 0.25rem;
   }
 
+  .section-header-actions .btn-group label i {
+    display: block;
+    font-size: 1.125rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .section-body {
+    padding: 1rem;
+  }
+
+  /* 表單欄位優化 */
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-label {
+    font-size: 0.9375rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .form-control,
+  .form-select {
+    font-size: 1rem; /* 防止 iOS 自動縮放 */
+    min-height: 44px;
+    padding: 0.625rem 0.875rem;
+  }
+
+  .form-control-lg {
+    font-size: 1.0625rem;
+    min-height: 48px;
+  }
+
+  /* Markdown 工具列優化 */
   .markdown-toolbar {
-    padding: 0.5rem;
+    padding: 0.5rem 0.375rem;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .toolbar-group {
-    flex-wrap: wrap;
+    gap: 0.25rem;
+    flex-shrink: 0;
   }
 
   .toolbar-divider {
     display: none;
   }
 
+  .markdown-toolbar .btn {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0.375rem;
+    font-size: 0.9375rem;
+    flex-shrink: 0;
+  }
+
+  /* Markdown 編輯器優化 */
   .markdown-editor-container {
-    min-height: 400px;
+    min-height: 350px;
+    border-radius: 8px;
   }
 
   .markdown-editor-container.split-mode {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr 1fr;
+    min-height: 600px;
   }
 
   .markdown-editor-container.split-mode .markdown-preview-pane {
     border-left: none;
-    border-top: 1px solid #dee2e6;
+    border-top: 2px solid #dee2e6;
   }
 
   .markdown-textarea {
-    min-height: 400px;
+    min-height: 350px;
+    padding: 1rem;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+
+  .markdown-editor-container.split-mode .markdown-textarea {
+    min-height: 280px;
+  }
+
+  .preview-content {
+    padding: 1rem;
+    font-size: 0.9375rem;
+  }
+
+  /* 影片/別名卡片優化 */
+  .video-entry .card-body {
+    padding: 1rem;
+  }
+
+  .video-entry .row {
+    row-gap: 0.75rem;
+  }
+
+  .video-entry .col-md-6 {
+    width: 100%;
+  }
+
+  .alias-entry {
+    margin-bottom: 0.75rem;
+  }
+
+  .alias-entry .input-group .btn {
+    min-width: 44px;
+    padding: 0.5rem;
+  }
+
+  /* 統計資訊優化 */
+  .markdown-stats {
+    font-size: 0.8125rem;
+    padding: 0.375rem 0;
+  }
+
+  /* 提示框優化 */
+  .alert {
+    font-size: 0.875rem;
+    padding: 0.875rem;
+    margin-bottom: 1rem;
+  }
+
+  .alert strong {
+    display: block;
+    margin-bottom: 0.375rem;
+  }
+
+  /* 側邊欄導航優化 */
+  .editor-nav {
+    padding: 0.5rem 0;
+  }
+
+  .editor-nav-item {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.9375rem;
+    min-height: 48px;
+  }
+
+  .editor-nav-item i {
+    font-size: 1.375rem;
+  }
+
+  /* 載入遮罩優化 */
+  .loading-overlay {
+    padding: 1rem;
+  }
+
+  .loading-message {
+    font-size: 0.9375rem;
+  }
+
+  /* 表格響應式 */
+  .preview-content table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 按鈕優化 */
+  .btn {
+    min-height: 44px;
+    padding: 0.625rem 1rem;
+  }
+
+  .btn-sm {
+    min-height: 36px;
+    padding: 0.375rem 0.75rem;
+  }
+
+  /* 資訊項目優化 */
+  .info-item {
+    flex-wrap: wrap;
+    font-size: 0.875rem;
+  }
+
+  .metadata-info {
+    padding: 1rem;
+  }
+
+  .metadata-info .row {
+    row-gap: 0.5rem;
+  }
+
+  .metadata-info .col-md-6 {
+    width: 100%;
   }
 }
 
@@ -674,6 +964,247 @@ body {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* ============================================================================
+   漢堡選單按鈕 (桌面版隱藏)
+   ============================================================================ */
+.btn-toggle-sidebar {
+  display: none; /* 桌面版隱藏 */
+}
+
+/* 側邊欄遮罩 (桌面版不需要) */
+.sidebar-overlay {
+  display: none;
+}
+
+/* ============================================================================
+   觸控優化和視覺反饋
+   ============================================================================ */
+
+/* 觸控目標最小尺寸 (WCAG 2.1 AA) */
+@media (max-width: 768px) {
+  a, button, input, select, textarea, label {
+    -webkit-tap-highlight-color: rgba(102, 126, 234, 0.2);
+  }
+
+  /* 移除按鈕的預設觸控高亮 */
+  button, a {
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+
+  /* 輸入框保留文字選擇 */
+  input, textarea {
+    user-select: text;
+  }
+
+  /* 改善觸控滾動 */
+  .editor-sidebar,
+  .editor-content,
+  .markdown-textarea,
+  .markdown-preview-pane,
+  .markdown-toolbar {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 防止雙擊縮放 */
+  * {
+    touch-action: manipulation;
+  }
+
+  /* 允許特定元素的標準觸控行為 */
+  .markdown-textarea,
+  .form-control,
+  .preview-content {
+    touch-action: auto;
+  }
+
+  /* 增強焦點可見性 */
+  input:focus,
+  textarea:focus,
+  select:focus,
+  button:focus {
+    outline: 3px solid rgba(102, 126, 234, 0.4);
+    outline-offset: 2px;
+  }
+
+  /* 改善按鈕按下效果 */
+  .btn:active,
+  .editor-nav-item:active {
+    transform: scale(0.97);
+    transition: transform 0.1s ease;
+  }
+
+  /* Markdown 工具列按鈕觸控反饋 */
+  .markdown-toolbar .btn:active {
+    background: #d3d8de;
+    transform: scale(0.95);
+  }
+
+  /* 改善側邊欄導航觸控區域 */
+  .editor-nav-item {
+    position: relative;
+  }
+
+  .editor-nav-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: transparent;
+  }
+
+  .editor-nav-item:active::before {
+    background: rgba(102, 126, 234, 0.1);
+  }
+
+  /* 改善卡片觸控反饋 */
+  .video-entry:active {
+    transform: scale(0.99);
+    transition: transform 0.1s ease;
+  }
+
+  /* 檔案輸入按鈕優化 */
+  input[type="file"] {
+    min-height: 44px;
+    padding: 0.625rem;
+  }
+
+  /* 複選框和單選按鈕觸控區域 */
+  .form-check-input {
+    min-width: 24px;
+    min-height: 24px;
+    margin-right: 0.75rem;
+  }
+
+  .form-check-label {
+    padding-left: 0.5rem;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* 提示文字可讀性 */
+  .form-text,
+  small {
+    line-height: 1.5;
+  }
+}
+
+/* ============================================================================
+   行動端特殊滾動優化
+   ============================================================================ */
+@media (max-width: 768px) {
+  /* 防止內容在鍵盤彈出時跳動 */
+  .keyword-editor-container {
+    position: relative;
+  }
+
+  /* 優化 Markdown 編輯器在鍵盤彈出時的行為 */
+  .markdown-textarea:focus {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* 確保工具列在鍵盤上方可見 */
+  .markdown-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #f8f9fa;
+  }
+
+  /* 改善長列表的滾動性能 */
+  .editor-nav,
+  #videos-container,
+  #aliases-container {
+    will-change: scroll-position;
+  }
+}
+
+/* ============================================================================
+   行動端輔助功能優化
+   ============================================================================ */
+@media (max-width: 768px) {
+  /* 跳過導航連結 (屏幕閱讀器) */
+  .skip-to-content {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #667eea;
+    color: white;
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    z-index: 10000;
+  }
+
+  .skip-to-content:focus {
+    top: 0;
+  }
+
+  /* 改善對比度 */
+  .text-muted {
+    color: #5a6268 !important;
+  }
+
+  /* 確保焦點順序合理 */
+  .editor-topbar {
+    display: flex;
+    flex-wrap: nowrap;
+  }
+
+  /* 提高錯誤訊息可見性 */
+  .invalid-feedback,
+  .alert-danger {
+    font-weight: 500;
+    border: 2px solid currentColor;
+  }
+
+  /* 改善載入狀態可見性 */
+  .loading-overlay {
+    backdrop-filter: blur(4px);
+  }
+}
+
+/* ============================================================================
+   小螢幕特定優化 (≤480px)
+   ============================================================================ */
+@media (max-width: 480px) {
+  .editor-title {
+    font-size: 0.875rem;
+    max-width: 150px;
+  }
+
+  .section-title {
+    font-size: 1.125rem;
+  }
+
+  .section-description {
+    font-size: 0.8125rem;
+  }
+
+  .markdown-toolbar .btn {
+    min-width: 32px;
+    min-height: 32px;
+    font-size: 0.875rem;
+  }
+
+  .toolbar-group {
+    gap: 0.125rem;
+  }
+
+  .btn {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .form-control,
+  .form-select {
+    font-size: 0.9375rem;
   }
 }
 

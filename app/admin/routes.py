@@ -2014,12 +2014,10 @@ def reorder_announcements():
 @admin_bp.route("/goal-lists")
 def manage_goal_lists():
     """管理關鍵字目標清單"""
-    from sqlalchemy import case, func
+    from sqlalchemy import case, desc, func
     from sqlalchemy.orm import load_only, selectinload
+    from datetime import datetime, timedelta
 
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 12, type=int) or 12
-    per_page = max(6, min(per_page, 60))
     search_query = (request.args.get("search", "") or "").strip()
 
     base_query = (
@@ -2032,15 +2030,8 @@ def manage_goal_lists():
         like_pattern = f"%{search_query}%"
         base_query = base_query.filter(KeywordGoalList.name.ilike(like_pattern))
 
-    pagination = (
-        base_query.order_by(KeywordGoalList.created_at.desc()).paginate(
-            page=page,
-            per_page=per_page,
-            error_out=False,
-        )
-    )
-
-    visible_lists = pagination.items
+    # 獲取所有清單 (不分頁)
+    visible_lists = base_query.order_by(KeywordGoalList.created_at.desc()).all()
     visible_ids = [goal_list.id for goal_list in visible_lists]
 
     stats_map: dict[int, tuple[int, int]] = {}
@@ -2078,12 +2069,86 @@ def manage_goal_lists():
             }
         )
 
+    # 計算用戶連續完成天數
+    def get_user_streak(user_id: int) -> int:
+        """計算用戶連續完成的天數 (每天至少建立一個關鍵字)"""
+        # 取得該用戶所有完成的目標項目 (按完成日期排序)
+        completed_items = (
+            KeywordGoalItem.query
+            .filter(KeywordGoalItem.completed_by == user_id)
+            .filter(KeywordGoalItem.is_completed.is_(True))
+            .filter(KeywordGoalItem.completed_at.isnot(None))
+            .order_by(desc(KeywordGoalItem.completed_at))
+            .all()
+        )
+        
+        if not completed_items:
+            return 0
+        
+        # 按日期分組
+        dates_with_completions = set()
+        for item in completed_items:
+            date = item.completed_at.date()
+            dates_with_completions.add(date)
+        
+        # 計算連續天數
+        today = datetime.utcnow().date()
+        streak = 0
+        current_date = today
+        
+        while current_date in dates_with_completions:
+            streak += 1
+            current_date -= timedelta(days=1)
+        
+        return streak
+    
+    # 計算每個用戶的總完成數量和連續天數
+    user_stats: dict[int, dict[str, Any]] = {}
+    all_completed_items = (
+        KeywordGoalItem.query
+        .filter(KeywordGoalItem.is_completed.is_(True))
+        .filter(KeywordGoalItem.completed_by.isnot(None))
+        .options(selectinload(KeywordGoalItem.completer))
+        .all()
+    )
+    
+    for item in all_completed_items:
+        if item.completed_by not in user_stats:
+            user_stats[item.completed_by] = {
+                'user': item.completer,
+                'total_completed': 0,
+                'streak': 0,
+            }
+        user_stats[item.completed_by]['total_completed'] += 1
+    
+    # 計算連續天數
+    for user_id in user_stats:
+        user_stats[user_id]['streak'] = get_user_streak(user_id)
+    
+    # 排行榜 - 連續天數
+    streak_leaderboard = sorted(
+        user_stats.values(),
+        key=lambda x: x['streak'],
+        reverse=True
+    )[:10]  # 取前 10 名
+    
+    # 排行榜 - 總完成數量
+    total_leaderboard = sorted(
+        user_stats.values(),
+        key=lambda x: x['total_completed'],
+        reverse=True
+    )[:10]  # 取前 10 名
+    
+    # 當前用戶的連續天數
+    current_user_streak = user_stats.get(current_user.id, {}).get('streak', 0)
+
     return render_template(
         "admin/goal_lists.html",
         goal_list_cards=goal_list_cards,
-        pagination=pagination,
-        per_page=per_page,
         search_query=search_query,
+        streak_leaderboard=streak_leaderboard,
+        total_leaderboard=total_leaderboard,
+        current_user_streak=current_user_streak,
     )
 
 
@@ -2129,8 +2194,85 @@ def create_goal_list():
 @admin_bp.route("/goal-lists/<int:list_id>")
 def view_goal_list(list_id: int):
     """查看目標清單詳情"""
-    goal_list = KeywordGoalList.query.get_or_404(list_id)
-    return render_template("admin/goal_list_detail.html", goal_list=goal_list)
+    from sqlalchemy.orm import selectinload
+    
+    goal_list = KeywordGoalList.query.options(
+        selectinload(KeywordGoalList.items).selectinload(KeywordGoalItem.completer),
+        selectinload(KeywordGoalList.items).selectinload(KeywordGoalItem.keyword),
+    ).get_or_404(list_id)
+    
+    # 獲取搜尋和篩選參數
+    search_query = (request.args.get("search", "") or "").strip()
+    status_filter = request.args.get("status", "all")
+    
+    # 分頁參數
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 20, type=int) or 20
+    per_page = max(10, min(per_page, 100))  # 限制在 10-100 之間
+    
+    # 篩選項目列表
+    all_items = goal_list.items  # 已經由 relationship 排序
+    
+    # 應用搜尋和狀態篩選
+    filtered_items = []
+    for item in all_items:
+        # 搜尋篩選
+        if search_query and search_query.lower() not in (item.title or "").lower():
+            continue
+        
+        # 狀態篩選
+        if status_filter == "completed" and not item.is_completed:
+            continue
+        if status_filter == "pending" and item.is_completed:
+            continue
+        
+        filtered_items.append(item)
+    
+    # 分頁處理
+    total_items = len(filtered_items)
+    total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
+    page = max(1, min(page, total_pages))  # 確保頁碼在有效範圍內
+    
+    start_idx = (page - 1) * per_page
+    end_idx = start_idx + per_page
+    paginated_items = filtered_items[start_idx:end_idx]
+    
+    # 創建分頁對象
+    class SimplePagination:
+        def __init__(self, items, page, per_page, total):
+            self.items = items
+            self.page = page
+            self.per_page = per_page
+            self.total = total
+            self.pages = (total + per_page - 1) // per_page if total > 0 else 1
+            self.has_prev = page > 1
+            self.has_next = page < self.pages
+            self.prev_num = page - 1 if self.has_prev else None
+            self.next_num = page + 1 if self.has_next else None
+        
+        def iter_pages(self, left_edge=2, left_current=2, right_current=2, right_edge=2):
+            last = 0
+            for num in range(1, self.pages + 1):
+                if (
+                    num <= left_edge
+                    or (self.page - left_current <= num <= self.page + right_current)
+                    or num > self.pages - right_edge
+                ):
+                    if last + 1 != num:
+                        yield None
+                    yield num
+                    last = num
+    
+    pagination = SimplePagination(paginated_items, page, per_page, total_items)
+    
+    return render_template(
+        "admin/goal_list_detail.html",
+        goal_list=goal_list,
+        pagination=pagination,
+        per_page=per_page,
+        search_query=search_query,
+        status_filter=status_filter,
+    )
 
 
 @admin_bp.post("/goal-lists/<int:list_id>/toggle")
