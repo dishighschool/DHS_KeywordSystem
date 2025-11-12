@@ -622,10 +622,14 @@
     const authorUserId = document.getElementById('author_user_select').value;
     const authorTextName = document.getElementById('author_text_input').value.trim();
     
+    // 獲取 CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    
     const data = {
       author_type: authorType,
       author_id: authorType === 'user' ? (authorUserId || null) : null,
-      author_name: authorType === 'text' ? authorTextName : ''
+      author_name: authorType === 'text' ? authorTextName : '',
+      csrf_token: csrfToken
     };
     
     try {
@@ -633,6 +637,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
         },
         body: JSON.stringify(data)
       });

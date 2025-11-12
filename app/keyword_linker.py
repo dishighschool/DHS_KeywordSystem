@@ -76,19 +76,30 @@ class KeywordLinker:
         result = html_content
 
         for title, target_url in sorted_titles:
-            pattern = r"\b" + re.escape(title) + r"\b"
+            # 使用更寬鬆的模式,不要求單詞邊界(因為中文沒有單詞邊界)
+            # 只要求不在 HTML 標籤內或已有的連結內
+            pattern = re.escape(title)
 
             def replace_if_valid(match: re.Match[str]) -> str:
                 before_text = match.string[: match.start()]
+                after_text = match.string[match.end():]
+                
+                # 檢查是否在 HTML 標籤內
                 open_tags = before_text.count("<")
                 close_tags = before_text.count(">")
-
                 if open_tags > close_tags:
                     return match.group(0)
+                
+                # 檢查後面是否有未閉合的標籤
+                if after_text:
+                    next_open = after_text.find("<")
+                    next_close = after_text.find(">")
+                    if next_close != -1 and (next_open == -1 or next_close < next_open):
+                        return match.group(0)
 
+                # 檢查是否在 <a> 標籤內
                 last_a_open = before_text.rfind("<a ")
                 last_a_close = before_text.rfind("</a>")
-
                 if last_a_open > last_a_close:
                     return match.group(0)
 
@@ -188,14 +199,14 @@ class KeywordLinker:
         result = markdown_content
 
         for title, target_url in sorted_titles:
+            # 使用更寬鬆的模式,不使用 \b 單詞邊界(中文不適用)
+            # 只檢查不在 Markdown 連結語法內
             pattern_parts = [
                 r"(?<!\[)",  # Not preceded by [
                 r"(?<!!)",  # Not preceded by ! (for images)
-                r"\b",
                 f"({re.escape(title)})",
-                r"\b",
-                r"(?!\])",
-                r"(?!\()",
+                r"(?!\])",  # Not followed by ]
+                r"(?!\()",  # Not followed by (
             ]
             pattern = "".join(pattern_parts)
 

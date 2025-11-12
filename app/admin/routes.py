@@ -600,9 +600,23 @@ def save_keyword_draft(keyword_id: int):
 @admin_required
 def update_keyword_author(keyword_id: int):
     """Update keyword author (admin only)."""
+    from flask_wtf.csrf import validate_csrf
+    from wtforms import ValidationError
+    
     keyword = LearningKeyword.query.get_or_404(keyword_id)
     
     data = request.get_json()
+    if not data:
+        return jsonify({"success": False, "message": "無效的請求資料"}), 400
+    
+    # 驗證 CSRF token
+    try:
+        csrf_token = request.headers.get('X-CSRFToken') or (data.get('csrf_token') if data else None)
+        if csrf_token:
+            validate_csrf(csrf_token)
+    except ValidationError:
+        return jsonify({"success": False, "message": "CSRF token 驗證失敗"}), 400
+    
     author_type = data.get('author_type')
     author_id = data.get('author_id')
     author_name = data.get('author_name', '').strip()
