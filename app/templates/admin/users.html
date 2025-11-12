@@ -164,7 +164,7 @@
           <span class="badge bg-danger ms-1">管理員</span> - 完整管理權限 |
           <span class="badge bg-primary ms-1">用戶</span> - 團隊成員權限
         </li>
-        <li><strong>刪除成員</strong>:刪除成員時會保留該成員創建的所有關鍵字，但關鍵字的作者資訊將顯示為「未知作者」</li>
+        <li><strong>刪除成員</strong>:刪除成員時會保留該成員創建的所有關鍵字，作者名稱將記錄為該成員的用戶名</li>
       </ul>
     </div>
   </div>
@@ -318,7 +318,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const userId = this.dataset.userId;
       const username = this.dataset.username;
       
-      if (!confirm(`⚠️ 警告!\n\n確定要刪除成員「${username}」嗎?\n\n此操作將:\n1. 永久刪除該成員帳號\n2. 保留該成員創建的所有關鍵字（作者資訊將顯示為「未知作者」）\n3. 無法復原\n\n請謹慎操作!`)) {
+      if (!confirm(`⚠️ 警告!\n\n確定要刪除成員「${username}」嗎?\n\n此操作將:\n1. 永久刪除該成員帳號\n2. 保留該成員創建的所有關鍵字（作者名稱將記錄為「${username}」）\n3. 無法復原\n\n請謹慎操作!`)) {
         return;
       }
       

@@ -113,9 +113,18 @@ class LearningKeyword(TimestampMixin, BaseModel):
 
     category_id: Mapped[int] = mapped_column(db.ForeignKey("keyword_categories.id"), nullable=False)
     author_id: Mapped[int | None] = mapped_column(db.ForeignKey("users.id"), nullable=True)
+    author_name: Mapped[str | None] = mapped_column(nullable=True)  # 文字作者名稱（用於已刪除的帳號或手動指定）
 
     category: Mapped[KeywordCategory] = relationship(back_populates="keywords")
     author: Mapped[User] = relationship(back_populates="keywords")
+    
+    def get_author_display_name(self) -> str:
+        """取得要顯示的作者名稱：優先使用 author_name，其次使用 author.username"""
+        if self.author_name:
+            return self.author_name
+        if self.author:
+            return self.author.username
+        return "未知作者"
     videos: Mapped[list["YouTubeVideo"]] = relationship(
         back_populates="keyword", cascade="all, delete-orphan"
     )

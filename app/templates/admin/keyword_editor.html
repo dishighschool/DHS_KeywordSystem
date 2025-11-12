@@ -439,7 +439,12 @@
                   <div class="info-item">
                     <i class="bi bi-person text-muted me-2"></i>
                     <span class="text-muted">建立者:</span>
-                    <strong class="ms-2">{{ keyword.author.username if keyword.author else "未知作者" }}</strong>
+                    <strong class="ms-2">{{ keyword.get_author_display_name() }}</strong>
+                    {% if current_user.is_admin() %}
+                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="showEditAuthorModal()">
+                      <i class="bi bi-pencil"></i> 編輯
+                    </button>
+                    {% endif %}
                   </div>
                 </div>
                 <div class="col-md-6">
@@ -473,6 +478,78 @@
   </div>
 </div>
 
+<!-- 編輯作者 Modal (僅管理員可用) -->
+{% if current_user.is_admin() and not is_creating %}
+<div class="modal fade" id="editAuthorModal" tabindex="-1" aria-labelledby="editAuthorModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editAuthorModalLabel">
+          <i class="bi bi-person-badge me-2"></i>編輯關鍵字作者
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">作者類型</label>
+          <div class="btn-group w-100" role="group">
+            <input type="radio" class="btn-check" name="author_type" id="author_type_user" value="user" checked>
+            <label class="btn btn-outline-primary" for="author_type_user">
+              <i class="bi bi-person-circle me-1"></i>選擇成員
+            </label>
+            
+            <input type="radio" class="btn-check" name="author_type" id="author_type_text" value="text">
+            <label class="btn btn-outline-primary" for="author_type_text">
+              <i class="bi bi-pencil me-1"></i>自訂名稱
+            </label>
+          </div>
+        </div>
+        
+        <div id="author_user_section" class="mb-3">
+          <label for="author_user_select" class="form-label">選擇成員</label>
+          <select class="form-select" id="author_user_select">
+            <option value="">-- 無作者 (將顯示自訂名稱或「未知作者」) --</option>
+            {% for user in User.query.order_by(User.username).all() %}
+            <option value="{{ user.id }}" {% if keyword.author_id == user.id %}selected{% endif %}>
+              {{ user.username }}
+              {% if user.id == current_user.id %}(您){% endif %}
+              {% if user.role.value == 'admin' %}[管理員]{% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div id="author_text_section" class="mb-3" style="display: none;">
+          <label for="author_text_input" class="form-label">自訂作者名稱</label>
+          <input type="text" class="form-control" id="author_text_input" 
+                 placeholder="輸入作者名稱..." 
+                 value="{{ keyword.author_name or '' }}">
+          <small class="text-muted">設定後將優先顯示此名稱，即使有關聯的成員帳號</small>
+        </div>
+        
+        <div class="alert alert-info mb-0">
+          <small>
+            <i class="bi bi-info-circle me-1"></i>
+            <strong>說明:</strong>
+            <ul class="mb-0 mt-1">
+              <li>選擇成員:將關鍵字作者設為系統內的成員帳號</li>
+              <li>自訂名稱:設定文字作者名稱,適用於已離開成員或外部作者</li>
+              <li>若同時設定兩者,將優先顯示自訂名稱</li>
+            </ul>
+          </small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" onclick="saveAuthorChange()">
+          <i class="bi bi-check-circle me-1"></i>儲存變更
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
@@ -496,7 +573,84 @@
         }
       });
     }
+    
+    // 作者類型切換
+    const authorTypeRadios = document.querySelectorAll('input[name="author_type"]');
+    authorTypeRadios.forEach(radio => {
+      radio.addEventListener('change', function() {
+        const userSection = document.getElementById('author_user_section');
+        const textSection = document.getElementById('author_text_section');
+        
+        if (this.value === 'user') {
+          userSection.style.display = 'block';
+          textSection.style.display = 'none';
+        } else {
+          userSection.style.display = 'none';
+          textSection.style.display = 'block';
+        }
+      });
+    });
   });
+  
+  {% if current_user.is_admin() and not is_creating %}
+  let editAuthorModal;
+  
+  function showEditAuthorModal() {
+    if (!editAuthorModal) {
+      editAuthorModal = new bootstrap.Modal(document.getElementById('editAuthorModal'));
+    }
+    
+    // 根據當前狀態設定預設選項
+    const hasAuthorId = {{ 'true' if keyword.author_id else 'false' }};
+    const hasAuthorName = {{ 'true' if keyword.author_name else 'false' }};
+    
+    if (hasAuthorName) {
+      document.getElementById('author_type_text').checked = true;
+      document.getElementById('author_user_section').style.display = 'none';
+      document.getElementById('author_text_section').style.display = 'block';
+    } else {
+      document.getElementById('author_type_user').checked = true;
+      document.getElementById('author_user_section').style.display = 'block';
+      document.getElementById('author_text_section').style.display = 'none';
+    }
+    
+    editAuthorModal.show();
+  }
+  
+  async function saveAuthorChange() {
+    const authorType = document.querySelector('input[name="author_type"]:checked').value;
+    const authorUserId = document.getElementById('author_user_select').value;
+    const authorTextName = document.getElementById('author_text_input').value.trim();
+    
+    const data = {
+      author_type: authorType,
+      author_id: authorType === 'user' ? (authorUserId || null) : null,
+      author_name: authorType === 'text' ? authorTextName : ''
+    };
+    
+    try {
+      const response = await fetch('{{ url_for("admin.update_keyword_author", keyword_id=keyword.id) }}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        alert(result.message);
+        location.reload();
+      } else {
+        alert(result.message || '更新失敗');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('更新時發生錯誤');
+    }
+  }
+  {% endif %}
 </script>
 </body>
 </html>

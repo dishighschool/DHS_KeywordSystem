@@ -506,7 +506,7 @@ def edit_keyword_studio(keyword_id: int):
     _populate_video_entries(form, keyword)
     _populate_alias_entries(form, keyword)
 
-    return render_template("admin/keyword_editor.html", form=form, keyword=keyword)
+    return render_template("admin/keyword_editor.html", form=form, keyword=keyword, User=User)
 
 
 @admin_bp.route("/keywords/<int:keyword_id>/save", methods=["POST"])
@@ -594,6 +594,48 @@ def save_keyword_draft(keyword_id: int):
             "success": False,
             "message": f"儲存失敗: {str(e)}"
         }), 500
+
+
+@admin_bp.post("/keywords/<int:keyword_id>/update-author")
+@admin_required
+def update_keyword_author(keyword_id: int):
+    """Update keyword author (admin only)."""
+    keyword = LearningKeyword.query.get_or_404(keyword_id)
+    
+    data = request.get_json()
+    author_type = data.get('author_type')
+    author_id = data.get('author_id')
+    author_name = data.get('author_name', '').strip()
+    
+    try:
+        if author_type == 'user':
+            # 設定為成員帳號
+            if author_id:
+                user = User.query.get(int(author_id))
+                if not user:
+                    return jsonify({"success": False, "message": "選擇的成員不存在"}), 404
+                keyword.author_id = user.id
+                keyword.author_name = None  # 清除自訂名稱
+            else:
+                # 移除作者關聯
+                keyword.author_id = None
+                keyword.author_name = None
+        else:
+            # 設定為自訂名稱
+            if not author_name:
+                return jsonify({"success": False, "message": "請輸入作者名稱"}), 400
+            keyword.author_name = author_name
+            keyword.author_id = None  # 清除成員關聯
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": f"已更新作者為「{keyword.get_author_display_name()}」"
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": f"更新失敗: {str(e)}"}), 500
 
 
 @admin_bp.post("/keywords/<int:keyword_id>/delete")
@@ -1909,8 +1951,12 @@ def delete_user(user_id: int):
     try:
         username = target_user.username
         
-        # 將成員的所有關鍵字的作者設為 NULL（保留關鍵字但移除作者關聯）
-        LearningKeyword.query.filter_by(author_id=target_user.id).update({"author_id": None})
+        # 將成員的所有關鍵字的 author_name 設為該成員的名稱，並將 author_id 設為 NULL
+        keywords = LearningKeyword.query.filter_by(author_id=target_user.id).all()
+        for keyword in keywords:
+            if not keyword.author_name:  # 只有在沒有手動設定作者名稱時才使用原本的用戶名
+                keyword.author_name = username
+            keyword.author_id = None
         
         # 刪除成員
         db.session.delete(target_user)
@@ -1918,7 +1964,7 @@ def delete_user(user_id: int):
         
         return jsonify({
             "success": True,
-            "message": f"已刪除成員 {username}，其建立的關鍵字已保留但作者資訊已移除"
+            "message": f"已刪除成員 {username}，其建立的 {len(keywords)} 筆關鍵字已保留並記錄作者名稱"
         })
     except Exception as e:
         db.session.rollback()
