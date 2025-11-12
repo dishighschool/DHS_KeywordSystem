@@ -1909,8 +1909,8 @@ def delete_user(user_id: int):
     try:
         username = target_user.username
         
-        # 刪除成員的所有關鍵字
-        LearningKeyword.query.filter_by(author_id=target_user.id).delete()
+        # 將成員的所有關鍵字的作者設為 NULL（保留關鍵字但移除作者關聯）
+        LearningKeyword.query.filter_by(author_id=target_user.id).update({"author_id": None})
         
         # 刪除成員
         db.session.delete(target_user)
@@ -1918,7 +1918,7 @@ def delete_user(user_id: int):
         
         return jsonify({
             "success": True,
-            "message": f"已刪除成員 {username} 及其所有關鍵字"
+            "message": f"已刪除成員 {username}，其建立的關鍵字已保留但作者資訊已移除"
         })
     except Exception as e:
         db.session.rollback()

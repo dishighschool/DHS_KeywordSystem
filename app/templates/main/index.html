@@ -186,7 +186,7 @@
             </h3>
           </div>
         </a>
-        <meta itemprop="author" content="{{ keyword.author.username }}">
+        <meta itemprop="author" content="{{ keyword.author.username if keyword.author else '未知作者' }}">
         <meta itemprop="dateModified" content="{{ keyword.updated_at.isoformat() }}">
         <meta itemprop="description" content="{{ keyword.description_markdown|striptags|truncate(100, True, '...') }}">
       </article>
@@ -209,7 +209,7 @@
             </h3>
           </div>
         </a>
-        <meta itemprop="author" content="{{ alias.keyword.author.username }}">
+        <meta itemprop="author" content="{{ alias.keyword.author.username if alias.keyword.author else '未知作者' }}">
         <meta itemprop="dateModified" content="{{ alias.updated_at.isoformat() }}">
         <meta itemprop="description" content="{{ alias.keyword.description_markdown|striptags|truncate(100, True, '...') }}">
       </article>

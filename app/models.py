@@ -47,7 +47,7 @@ class User(UserMixin, TimestampMixin, BaseModel):
     active: Mapped[bool] = mapped_column("is_active", default=True, nullable=False)
 
     keywords: Mapped[list["LearningKeyword"]] = relationship(
-        back_populates="author", cascade="all, delete-orphan", lazy="dynamic"
+        back_populates="author", lazy="dynamic"
     )
 
     def is_admin(self) -> bool:
@@ -112,7 +112,7 @@ class LearningKeyword(TimestampMixin, BaseModel):
     seo_auto_generate: Mapped[bool] = mapped_column(default=True, nullable=False)
 
     category_id: Mapped[int] = mapped_column(db.ForeignKey("keyword_categories.id"), nullable=False)
-    author_id: Mapped[int] = mapped_column(db.ForeignKey("users.id"), nullable=False)
+    author_id: Mapped[int | None] = mapped_column(db.ForeignKey("users.id"), nullable=True)
 
     category: Mapped[KeywordCategory] = relationship(back_populates="keywords")
     author: Mapped[User] = relationship(back_populates="keywords")
