@@ -224,7 +224,11 @@
                     <div class="display-4 fw-bold text-primary">{{ current_user_streak }}</div>
                 </div>
                 <h6 class="text-muted mb-0">您的連續完成天數</h6>
-                <small class="text-muted">每天至少完成一個關鍵字</small>
+                {% if not current_user_today_completed %}
+                <small class="text-warning">本日還未完成</small>
+                {% else %}
+                <small class="text-success">今日已完成</small>
+                {% endif %}
             </div>
         </div>
     </div>

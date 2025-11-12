@@ -2130,8 +2130,12 @@ def manage_goal_lists():
         )
 
     # 計算用戶連續完成天數
-    def get_user_streak(user_id: int) -> int:
-        """計算用戶連續完成的天數 (每天至少建立一個關鍵字)"""
+    def get_user_streak(user_id: int) -> tuple[int, bool]:
+        """計算用戶連續完成的天數 (每天至少建立一個關鍵字)
+        
+        Returns:
+            tuple: (連續天數, 今天是否已完成)
+        """
         # 取得該用戶所有完成的目標項目 (按完成日期排序)
         completed_items = (
             KeywordGoalItem.query
@@ -2143,7 +2147,7 @@ def manage_goal_lists():
         )
         
         if not completed_items:
-            return 0
+            return 0, False
         
         # 按日期分組
         dates_with_completions = set()
@@ -2151,16 +2155,27 @@ def manage_goal_lists():
             date = item.completed_at.date()
             dates_with_completions.add(date)
         
-        # 計算連續天數
+        # 檢查今天是否已完成
         today = datetime.utcnow().date()
+        today_completed = today in dates_with_completions
+        
+        # 計算連續天數
         streak = 0
         current_date = today
         
-        while current_date in dates_with_completions:
-            streak += 1
-            current_date -= timedelta(days=1)
+        # 如果今天完成了，從今天開始計算
+        if today_completed:
+            while current_date in dates_with_completions:
+                streak += 1
+                current_date -= timedelta(days=1)
+        else:
+            # 如果今天沒完成，從昨天開始計算
+            current_date = today - timedelta(days=1)
+            while current_date in dates_with_completions:
+                streak += 1
+                current_date -= timedelta(days=1)
         
-        return streak
+        return streak, today_completed
     
     # 計算每個用戶的總完成數量和連續天數
     user_stats: dict[int, dict[str, Any]] = {}
@@ -2178,12 +2193,15 @@ def manage_goal_lists():
                 'user': item.completer,
                 'total_completed': 0,
                 'streak': 0,
+                'today_completed': False,
             }
         user_stats[item.completed_by]['total_completed'] += 1
     
     # 計算連續天數
     for user_id in user_stats:
-        user_stats[user_id]['streak'] = get_user_streak(user_id)
+        streak, today_completed = get_user_streak(user_id)
+        user_stats[user_id]['streak'] = streak
+        user_stats[user_id]['today_completed'] = today_completed
     
     # 排行榜 - 連續天數
     streak_leaderboard = sorted(
@@ -2199,8 +2217,10 @@ def manage_goal_lists():
         reverse=True
     )[:10]  # 取前 10 名
     
-    # 當前用戶的連續天數
-    current_user_streak = user_stats.get(current_user.id, {}).get('streak', 0)
+    # 當前用戶的連續天數和今天完成狀態
+    current_user_stats = user_stats.get(current_user.id, {'streak': 0, 'today_completed': False})
+    current_user_streak = current_user_stats['streak']
+    current_user_today_completed = current_user_stats['today_completed']
 
     return render_template(
         "admin/goal_lists.html",
@@ -2209,6 +2229,7 @@ def manage_goal_lists():
         streak_leaderboard=streak_leaderboard,
         total_leaderboard=total_leaderboard,
         current_user_streak=current_user_streak,
+        current_user_today_completed=current_user_today_completed,
     )
 
 
