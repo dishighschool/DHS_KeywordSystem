@@ -797,7 +797,7 @@
   position: relative;
 }
 
-.keyword-card-alias .keyword-card-link::after {
+.keyword-card-alias .keyword-card-link::before {
   content: '';
   position: absolute;
   top: 8px;
@@ -807,4 +807,5 @@
   background-color: var(--md-sys-color-tertiary);
   border-radius: 50%;
   opacity: 0.7;
+  z-index: 4;
 }
