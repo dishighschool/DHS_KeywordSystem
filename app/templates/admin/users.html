@@ -9,12 +9,19 @@
 <div class="row">
   <div class="col-12">
     <div class="admin-card">
-      <div class="admin-card-header">
-        <h2 class="admin-card-title">
-          <i class="bi bi-people-fill admin-card-icon"></i>
-          系統成員列表
-        </h2>
-        <div class="text-muted small">共 {{ users_data|length }} 位成員 (按註冊時間排序)</div>
+      <div class="admin-card-header d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="admin-card-title mb-1">
+            <i class="bi bi-people-fill admin-card-icon"></i>
+            系統成員列表
+          </h2>
+          <div class="text-muted small">共 {{ users_data|length }} 位成員 (按註冊時間排序)</div>
+        </div>
+        <div>
+          <button type="button" class="btn btn-primary" onclick="refreshAllProfileUrls()">
+            <i class="bi bi-arrow-clockwise me-2"></i>批次刷新成員頁面
+          </button>
+        </div>
       </div>
       <div class="admin-card-body p-0">
         {% if users_data %}
@@ -27,9 +34,10 @@
                 <th>成員名稱</th>
                 <th style="width: 150px;">角色</th>
                 <th style="width: 120px;">狀態</th>
+                <th style="width: 150px;">成員頁面</th>
                 <th style="width: 180px;">註冊時間</th>
                 <th style="width: 100px;">關鍵字數</th>
-                <th style="width: 200px;" class="text-center">操作</th>
+                <th style="width: 250px;" class="text-center">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -79,6 +87,17 @@
                   </span>
                   {% endif %}
                 </td>
+                <td id="profile-url-{{ user.id }}">
+                  {% if user.profile_url %}
+                  <a href="{{ user.profile_url }}" target="_blank" rel="noopener noreferrer" class="text-decoration-none small" title="{{ user.profile_url }}">
+                    <i class="bi bi-link-45deg text-success"></i> 已綁定
+                  </a>
+                  {% else %}
+                  <span class="text-muted small">
+                    <i class="bi bi-x-circle"></i> 未綁定
+                  </span>
+                  {% endif %}
+                </td>
                 <td>
                   <small class="text-muted">
                     {{ user.created_at.strftime('%Y-%m-%d %H:%M') }}
@@ -92,7 +111,16 @@
                 <td class="text-center">
                   {% if can_manage %}
                   <div class="btn-group btn-group-sm" role="group">
+                    <!-- 刷新成員頁面 -->
+                    <button type="button" 
+                      class="btn btn-outline-info refresh-profile-btn"
+                      data-user-id="{{ user.id }}"
+                      data-username="{{ user.username }}"
+                      title="刷新成員頁面">
+                      <i class="bi bi-arrow-clockwise"></i>
+                    </button>
                     
+                    <!-- 切換角色 -->
                     <button type="button" 
                       class="btn btn-outline-primary toggle-role-btn"
                       data-user-id="{{ user.id }}"
@@ -346,6 +374,93 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   });
+  
+  // 刷新單個成員的成員頁面URL
+  document.querySelectorAll('.refresh-profile-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+      const userId = this.dataset.userId;
+      const username = this.dataset.username;
+      
+      // 添加加載狀態
+      const originalHtml = this.innerHTML;
+      this.innerHTML = '<i class="bi bi-hourglass-split"></i>';
+      this.disabled = true;
+      
+      try {
+        const response = await fetch(`/admin/users/${userId}/refresh-profile-url`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'}
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // 更新顯示
+          const profileCell = document.getElementById(`profile-url-${userId}`);
+          if (data.profile_url) {
+            profileCell.innerHTML = `
+              <a href="${data.profile_url}" target="_blank" rel="noopener noreferrer" class="text-decoration-none small" title="${data.profile_url}">
+                <i class="bi bi-link-45deg text-success"></i> 已綁定
+              </a>
+            `;
+          } else {
+            profileCell.innerHTML = `
+              <span class="text-muted small">
+                <i class="bi bi-x-circle"></i> 未綁定
+              </span>
+            `;
+          }
+          
+          // 顯示提示
+          alert(data.message);
+        } else {
+          alert(data.message || '更新失敗');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('更新時發生錯誤');
+      } finally {
+        // 恢復按鈕狀態
+        this.innerHTML = originalHtml;
+        this.disabled = false;
+      }
+    });
+  });
 });
+
+// 批次刷新所有成員的成員頁面URL
+async function refreshAllProfileUrls() {
+  if (!confirm('確定要批次刷新所有成員的成員頁面URL嗎?\n\n這可能需要一些時間,請耐心等待。')) {
+    return;
+  }
+  
+  // 顯示加載提示
+  const btn = event.target.closest('button');
+  const originalHtml = btn.innerHTML;
+  btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>更新中...';
+  btn.disabled = true;
+  
+  try {
+    const response = await fetch('/admin/users/refresh-all-profile-urls', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'}
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      alert(`✅ ${data.message}`);
+      location.reload();
+    } else {
+      alert(`❌ ${data.message || '批次更新失敗'}`);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('❌ 批次更新時發生錯誤');
+  } finally {
+    btn.innerHTML = originalHtml;
+    btn.disabled = false;
+  }
+}
 </script>
 {% endblock %}

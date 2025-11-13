@@ -258,6 +258,50 @@
                 </div>
             </div>
         </div>
+        
+        <!-- 成員頁面綁定 -->
+        <div class="admin-card mt-4">
+            <div class="admin-card-header">
+                <h5 class="admin-card-title">
+                    <i class="admin-card-icon bi bi-link-45deg"></i>
+                    成員頁面綁定
+                </h5>
+            </div>
+            <div class="admin-card-body">
+                {% if current_user.profile_url %}
+                    <div class="alert alert-success d-flex align-items-center">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        <div class="flex-grow-1">
+                            <strong>已綁定</strong>
+                            <div class="mt-1">
+                                <a href="{{ current_user.profile_url }}" target="_blank" rel="noopener noreferrer" class="text-decoration-none">
+                                    {{ current_user.profile_url }} <i class="bi bi-box-arrow-up-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning d-flex align-items-center">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <div>
+                            <strong>尚未綁定成員頁面</strong>
+                            <p class="mb-0 mt-1 small">點擊下方按鈕檢查是否有對應的成員頁面。</p>
+                        </div>
+                    </div>
+                {% endif %}
+                
+                <form method="POST" action="{{ url_for('admin.refresh_member_url') }}">
+                    {{ form.hidden_tag() }}
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-arrow-clockwise me-2"></i>重新檢查並更新成員頁面
+                    </button>
+                    <div class="form-text mt-2">
+                        <i class="bi bi-info-circle me-1"></i>
+                        系統會自動查詢成員頁面系統，檢查是否有與您的 Discord ID 對應的個人頁面。
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
     
     <div class="col-lg-8">

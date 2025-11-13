@@ -1,0 +1,123 @@
+{% extends "admin/base.html" %}
+{% block title %}API 設定{% endblock %}
+{% block header_title %}API 設定{% endblock %}
+{% block page_icon_class %}bi bi-gear-fill{% endblock %}
+{% block page_title %}API 設定{% endblock %}
+{% block page_subtitle %}管理外部 API 連接設定{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="admin-card">
+            <div class="admin-card-header d-flex justify-content-between align-items-start">
+                <div>
+                    <h2 class="admin-card-title">
+                        <i class="bi bi-link-45deg admin-card-icon"></i>
+                        成員頁面系統 API
+                    </h2>
+                    <p class="text-muted mb-0">設定成員頁面系統的 API 基底 URL</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('admin.site_settings') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>返回
+                    </a>
+                    <button type="submit" form="apiSettingsForm" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>儲存設定
+                    </button>
+                </div>
+            </div>
+            <div class="admin-card-body">
+                <form method="post" action="{{ url_for('admin.update_api_settings') }}" id="apiSettingsForm">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-4">
+                        <label for="member_api_base_url" class="form-label fw-semibold">
+                            <i class="bi bi-link-45deg me-1"></i>API 基底 URL
+                        </label>
+                        {{ form.member_api_base_url(class='form-control form-control-lg', placeholder='http://member.dhs.todothere.com') }}
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i>
+                            成員頁面系統的 API 基底網址，用於查詢用戶的個人頁面 URL。
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">
+                            <i class="bi bi-info-circle-fill me-2"></i>API 使用說明
+                        </h6>
+                        <p class="mb-2">系統會調用以下 API 端點來查詢用戶的個人頁面：</p>
+                        <code class="d-block p-2 bg-light rounded mb-2">
+                            GET {{ form.member_api_base_url.data or 'http://member.dhs.todothere.com' }}/api/user-profile-url/{discord_id}
+                        </code>
+                        <p class="mb-0 small">
+                            <strong>預期響應格式：</strong>
+                        </p>
+                        <pre class="bg-light p-2 rounded mb-0"><code>{
+  "success": true,
+  "discord_id": "123456789012345678",
+  "username": "user123",
+  "display_name": "用戶顯示名稱",
+  "profile_url": "https://your-domain.com/user/user123",
+  "user_id": 42
+}</code></pre>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h5 class="admin-card-title">
+                    <i class="bi bi-lightbulb admin-card-icon"></i>
+                    使用提示
+                </h5>
+            </div>
+            <div class="admin-card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-3">
+                        <i class="bi bi-check-circle text-success me-2"></i>
+                        <strong>自動綁定：</strong>用戶註冊時自動檢查並綁定成員頁面
+                    </li>
+                    <li class="mb-3">
+                        <i class="bi bi-check-circle text-success me-2"></i>
+                        <strong>手動刷新：</strong>用戶可在個人資料頁面手動更新綁定
+                    </li>
+                    <li class="mb-3">
+                        <i class="bi bi-check-circle text-success me-2"></i>
+                        <strong>批次刷新：</strong>管理員可在成員管理頁面批次更新
+                    </li>
+                    <li class="mb-0">
+                        <i class="bi bi-check-circle text-success me-2"></i>
+                        <strong>顯示連結：</strong>關鍵字頁面會顯示作者的成員頁面連結
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="admin-card mt-3">
+            <div class="admin-card-header">
+                <h5 class="admin-card-title">
+                    <i class="bi bi-shield-check admin-card-icon"></i>
+                    安全性
+                </h5>
+            </div>
+            <div class="admin-card-body">
+                <p class="text-muted small mb-2">
+                    <i class="bi bi-lock-fill me-1"></i>
+                    所有 API 請求都會進行超時控制（10秒）
+                </p>
+                <p class="text-muted small mb-2">
+                    <i class="bi bi-lock-fill me-1"></i>
+                    請求失敗不會影響用戶註冊或登入流程
+                </p>
+                <p class="text-muted small mb-0">
+                    <i class="bi bi-lock-fill me-1"></i>
+                    所有錯誤都會被記錄到系統日誌
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -256,6 +256,7 @@ def dashboard():
 def edit_profile():
     """用戶編輯個人資料"""
     from ..forms import UserProfileForm
+    from ..utils.member_api import update_user_profile_url
     
     form = UserProfileForm(obj=current_user)
     
@@ -268,6 +269,22 @@ def edit_profile():
         return redirect(url_for("admin.edit_profile"))
     
     return render_template("admin/profile.html", form=form)
+
+
+@admin_bp.post("/profile/refresh-member-url")
+def refresh_member_url():
+    """刷新當前用戶的成員頁面URL"""
+    from ..utils.member_api import update_user_profile_url
+    
+    update_user_profile_url(current_user)
+    db.session.commit()
+    
+    if current_user.profile_url:
+        flash(f"已更新成員頁面綁定：{current_user.profile_url}", "success")
+    else:
+        flash("未找到對應的成員頁面。", "warning")
+    
+    return redirect(url_for("admin.edit_profile"))
 
 
 @admin_bp.get("/sortable-demo")
@@ -1005,6 +1022,35 @@ def manage_branding():
     return redirect(url_for("admin.site_settings"))
 
 
+@admin_bp.route("/api-settings", methods=["GET", "POST"])
+@admin_required
+def api_settings():
+    """API 設定頁面"""
+    from ..forms import APISettingsForm
+    
+    form = APISettingsForm(
+        member_api_base_url=SiteSetting.get(SiteSettingKey.MEMBER_API_BASE_URL, "http://member.dhs.todothere.com")
+    )
+    
+    return render_template("admin/api_settings.html", form=form)
+
+
+@admin_bp.post("/api-settings/update")
+@admin_required
+def update_api_settings():
+    """更新 API 設定"""
+    from ..forms import APISettingsForm
+    
+    form = APISettingsForm()
+    
+    if form.validate_on_submit():
+        SiteSetting.set(SiteSettingKey.MEMBER_API_BASE_URL, form.member_api_base_url.data or "http://member.dhs.todothere.com")
+        flash("已更新 API 設定。", "success")
+        return redirect(url_for("admin.api_settings"))
+    
+    return render_template("admin/api_settings.html", form=form)
+
+
 @admin_bp.route("/site-settings", methods=["GET", "POST"])
 @admin_required
 def site_settings():
@@ -1018,7 +1064,6 @@ def site_settings():
         header_logo_url=SiteSetting.get(SiteSettingKey.HEADER_LOGO_URL, ""),
         footer_logo_url=SiteSetting.get(SiteSettingKey.FOOTER_LOGO_URL, ""),
         footer_copy=SiteSetting.get(SiteSettingKey.FOOTER_COPY, ""),
-        member_api_base_url=SiteSetting.get(SiteSettingKey.MEMBER_API_BASE_URL, "http://member.dhs.todothere.com"),
     )
     
     nav_form = NavigationLinkForm()
@@ -1149,11 +1194,6 @@ def update_site_settings():
             
             if not footer_logo_file or not footer_logo_file.filename:
                 flash("已更新頁尾設定。", "success")
-                
-        elif form_section == 'api':
-            # API 設定分頁
-            SiteSetting.set(SiteSettingKey.MEMBER_API_BASE_URL, form.member_api_base_url.data or "http://member.dhs.todothere.com")
-            flash("已更新 API 設定。", "success")
     
     return redirect(url_for("admin.site_settings"))
 
@@ -1989,6 +2029,73 @@ def delete_user(user_id: int):
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "message": f"刪除失敗: {str(e)}"}), 500
+
+
+@admin_bp.post("/users/<int:user_id>/refresh-profile-url")
+@admin_required
+def refresh_user_profile_url(user_id: int):
+    """刷新單個成員的成員頁面URL - AJAX"""
+    from ..utils.member_api import update_user_profile_url
+    
+    target_user = User.query.get_or_404(user_id)
+    
+    try:
+        update_user_profile_url(target_user)
+        db.session.commit()
+        
+        if target_user.profile_url:
+            return jsonify({
+                "success": True,
+                "message": f"已更新 {target_user.username} 的成員頁面綁定",
+                "profile_url": target_user.profile_url
+            })
+        else:
+            return jsonify({
+                "success": True,
+                "message": f"{target_user.username} 未找到對應的成員頁面",
+                "profile_url": None
+            })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": f"更新失敗: {str(e)}"}), 500
+
+
+@admin_bp.post("/users/refresh-all-profile-urls")
+@admin_required
+def refresh_all_profile_urls():
+    """批次刷新所有成員的成員頁面URL"""
+    from ..utils.member_api import update_user_profile_url
+    
+    try:
+        users = User.query.all()
+        success_count = 0
+        updated_count = 0
+        
+        for user in users:
+            try:
+                old_url = user.profile_url
+                update_user_profile_url(user)
+                
+                if user.profile_url:
+                    success_count += 1
+                    if old_url != user.profile_url:
+                        updated_count += 1
+            except Exception as e:
+                current_app.logger.warning(f"Failed to update profile URL for user {user.username}: {e}")
+                continue
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": f"已完成批次更新：{success_count} 位成員已綁定成員頁面，其中 {updated_count} 位成員的綁定有更新",
+            "total_users": len(users),
+            "success_count": success_count,
+            "updated_count": updated_count
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": f"批次更新失敗: {str(e)}"}), 500
 
 
 # ==================== 公告橫幅管理 ====================

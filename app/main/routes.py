@@ -4,8 +4,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 
-from flask import Blueprint, abort, flash, jsonify, make_response, redirect, render_template, request, url_for
-from flask_login import login_required, current_user
+from flask import Blueprint, abort, jsonify, make_response, redirect, render_template, url_for
 
 from ..extensions import db
 from ..models import KeywordAlias, KeywordCategory, LearningKeyword, slugify
@@ -13,24 +12,9 @@ from ..sitemap import sitemap_manager
 from ..keyword_linker import keyword_linker
 from ..utils.seo import generate_seo_html
 from ..utils.markdown_renderer import render_markdown_safe, strip_markdown_to_text
-from ..utils.member_api import update_user_profile_url
 
 
 main_bp = Blueprint("main", __name__)
-
-
-@main_bp.route("/profile", methods=["GET", "POST"])
-@login_required
-def profile():
-    """User profile page with member profile URL management."""
-    if request.method == "POST":
-        # Update member profile URL
-        update_user_profile_url(current_user)
-        db.session.commit()
-        flash("已更新成員頁面綁定。", "success")
-        return redirect(url_for("main.profile"))
-
-    return render_template("main/profile.html", user=current_user)
 
 
 def _clean_title(value: str | None) -> str:

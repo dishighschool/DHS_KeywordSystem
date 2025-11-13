@@ -127,6 +127,11 @@ class UserProfileForm(FlaskForm):
     submit = SubmitField("儲存變更")
 
 
+class APISettingsForm(FlaskForm):
+    member_api_base_url = URLField("成員頁面 API 基底 URL", validators=[DataRequired(), URL()], default="http://member.dhs.todothere.com")
+    submit = SubmitField("儲存設定")
+
+
 class KeywordGoalListForm(FlaskForm):
     name = StringField("清單名稱", validators=[DataRequired(), Length(max=200)])
     description = TextAreaField("描述", validators=[Optional(), Length(max=1000)])
