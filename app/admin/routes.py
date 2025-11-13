@@ -1018,6 +1018,7 @@ def site_settings():
         header_logo_url=SiteSetting.get(SiteSettingKey.HEADER_LOGO_URL, ""),
         footer_logo_url=SiteSetting.get(SiteSettingKey.FOOTER_LOGO_URL, ""),
         footer_copy=SiteSetting.get(SiteSettingKey.FOOTER_COPY, ""),
+        member_api_base_url=SiteSetting.get(SiteSettingKey.MEMBER_API_BASE_URL, "http://member.dhs.todothere.com"),
     )
     
     nav_form = NavigationLinkForm()
@@ -1148,6 +1149,11 @@ def update_site_settings():
             
             if not footer_logo_file or not footer_logo_file.filename:
                 flash("已更新頁尾設定。", "success")
+                
+        elif form_section == 'api':
+            # API 設定分頁
+            SiteSetting.set(SiteSettingKey.MEMBER_API_BASE_URL, form.member_api_base_url.data or "http://member.dhs.todothere.com")
+            flash("已更新 API 設定。", "success")
     
     return redirect(url_for("admin.site_settings"))
 

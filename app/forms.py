@@ -84,6 +84,7 @@ class SiteBrandingForm(FlaskForm):
         validators=[Optional(), FileAllowed(["ico", "png"], "只允許上傳 .ico 或 .png 檔案")]
     )
     footer_copy = StringField("底部版權文字", validators=[Optional(), Length(max=255)])
+    member_api_base_url = URLField("成員頁面 API 基底 URL", validators=[Optional(), URL()], default="http://member.dhs.todothere.com")
     submit = SubmitField("更新品牌設定")
 
 

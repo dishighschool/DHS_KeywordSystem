@@ -27,6 +27,11 @@
       <i class="bi bi-layout-text-window me-2"></i>頁尾設定
     </button>
   </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="api-tab" data-bs-toggle="tab" data-bs-target="#api" type="button">
+      <i class="bi bi-gear me-2"></i>API 設定
+    </button>
+  </li>
 </ul>
 
 <div class="tab-content" id="settingsTabContent">
@@ -327,6 +332,48 @@
               <button type="button" class="btn btn-sm btn-outline-primary mt-2 w-100" data-bs-toggle="modal" data-bs-target="#addFooterModal">
                 <i class="bi bi-plus-lg"></i> 新增社交媒體連結
               </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  
+  <div class="tab-pane fade" id="api" role="tabpanel">
+    <div class="admin-card">
+      <div class="admin-card-header d-flex justify-content-between align-items-start">
+        <div>
+          <h2 class="admin-card-title">
+            <i class="bi bi-gear admin-card-icon"></i>
+            API 設定
+          </h2>
+          <p class="text-muted mb-0">設定外部服務 API 連接</p>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-x-lg me-1"></i>取消
+          </a>
+          <button type="submit" form="apiSettingsForm" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>儲存設定
+          </button>
+        </div>
+      </div>
+      <div class="admin-card-body">
+        <form method="post" action="{{ url_for('admin.update_site_settings') }}" enctype="multipart/form-data" id="apiSettingsForm">
+          {{ branding_form.hidden_tag() }}
+          <input type="hidden" name="form_section" value="api">
+          
+          <div class="row g-3">
+            <div class="col-md-8">
+              <div class="mb-3">
+                {{ branding_form.member_api_base_url.label(class_='form-label fw-semibold') }}
+                {{ branding_form.member_api_base_url(class_='form-control', placeholder='http://member.dhs.todothere.com') }}
+                <div class="form-text">
+                  <i class="bi bi-info-circle"></i>
+                  成員頁面系統的 API 基底 URL，用於獲取用戶個人頁面連結
+                </div>
+              </div>
             </div>
           </div>
         </form>

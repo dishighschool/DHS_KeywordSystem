@@ -45,6 +45,7 @@ class User(UserMixin, TimestampMixin, BaseModel):
     avatar_hash: Mapped[str | None]  # 儲存 Discord avatar hash
     role: Mapped[Role] = mapped_column(default=Role.USER, nullable=False)
     active: Mapped[bool] = mapped_column("is_active", default=True, nullable=False)
+    profile_url: Mapped[str | None] = mapped_column(nullable=True)  # 成員頁面URL
 
     keywords: Mapped[list["LearningKeyword"]] = relationship(
         back_populates="author", lazy="dynamic"
@@ -201,6 +202,7 @@ class SiteSettingKey(enum.StrEnum):
     REGISTRATION_USER_KEY = "registration_user_key"
     REGISTRATION_ADMIN_KEY = "registration_admin_key"
     BACKUP_DISCORD_WEBHOOK_URL = "backup_discord_webhook_url"
+    MEMBER_API_BASE_URL = "member_api_base_url"
 
 
 class SiteSetting(TimestampMixin, BaseModel):

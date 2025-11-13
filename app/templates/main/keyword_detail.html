@@ -60,7 +60,14 @@
       
       <div class="meta-info mb-3 d-flex flex-wrap align-items-center gap-3 text-muted">
         <span itemprop="author" itemscope itemtype="https://schema.org/Person" class="d-flex align-items-center gap-1">
-          <i class="bi bi-person"></i><span itemprop="name">{{ keyword.get_author_display_name() }}</span>
+          <i class="bi bi-person"></i>
+          {% if keyword.author and keyword.author.profile_url %}
+          <a href="{{ keyword.author.profile_url }}" target="_blank" rel="noopener noreferrer" class="text-decoration-none text-muted hover-primary" itemprop="name">
+            {{ keyword.get_author_display_name() }}
+          </a>
+          {% else %}
+          <span itemprop="name">{{ keyword.get_author_display_name() }}</span>
+          {% endif %}
         </span>
         <span class="text-muted d-none d-sm-inline">•</span>
         <time datetime="{{ last_modified.isoformat() }}" itemprop="dateModified" class="d-none d-sm-flex align-items-center gap-1">

@@ -9,6 +9,7 @@ from flask.typing import ResponseReturnValue
 from ..extensions import db, oauth
 from ..forms import RegistrationKeyRequestForm
 from ..models import Role, SiteSetting, SiteSettingKey, User
+from ..utils.member_api import update_user_profile_url
 
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
@@ -47,6 +48,10 @@ def register() -> ResponseReturnValue:
                 role=matched_role,
             )
             db.session.add(user)
+            db.session.commit()
+
+            # 自動檢查並綁定成員頁面URL
+            update_user_profile_url(user)
             db.session.commit()
 
             session.pop("pending_profile", None)
