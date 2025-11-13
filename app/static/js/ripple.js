@@ -13,6 +13,8 @@ class RippleEffect {
       this.addRippleToElements('button');
       this.addRippleToElements('[role="button"]');
       
+      // Add ripple to category detail cards
+      this.addRippleToElements('.keyword-card-wrapper .card');
       
       this.addRippleToElements('.category-btn');
       

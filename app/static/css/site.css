@@ -278,6 +278,25 @@ h6.text-white {
   box-shadow: var(--md-sys-elevation-2);
 }
 
+.card::after {
+  content: '';
+  position: absolute;
+  left: var(--ripple-x, 50%);
+  top: var(--ripple-y, 50%);
+  border-radius: 50%;
+  background: var(--md-sys-color-primary);
+  width: 0;
+  height: 0;
+  opacity: 0.35;
+  transform: translate(-50%, -50%) scale(0);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.card.ripple-active::after {
+  animation: ripple 0.5s var(--md-sys-motion-easing-emphasized-decelerate);
+}
+
 .shadow-hover {
   box-shadow: var(--md-sys-elevation-1);
   transition: box-shadow var(--md-sys-motion-duration-medium-2) var(--md-sys-motion-easing-standard),
