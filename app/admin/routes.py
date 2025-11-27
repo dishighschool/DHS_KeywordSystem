@@ -3491,9 +3491,10 @@ def ai_settings():
     else:
         # Default fallback choices (use full model resource names)
         form.model.choices = [
+            ("models/gemini-2.0-flash-exp", "Gemini 2.0 Flash Experimental"),
             ("models/gemini-1.5-flash", "Gemini 1.5 Flash"),
+            ("models/gemini-1.5-flash-8b", "Gemini 1.5 Flash-8B"),
             ("models/gemini-1.5-pro", "Gemini 1.5 Pro"),
-            ("models/gemini-1.0-pro", "Gemini 1.0 Pro"),
         ]
     
     # Get usage statistics
@@ -3532,15 +3533,17 @@ def update_ai_settings():
             ]
         else:
             form.model.choices = [
+                ("models/gemini-2.0-flash-exp", "Gemini 2.0 Flash Experimental"),
                 ("models/gemini-1.5-flash", "Gemini 1.5 Flash"),
+                ("models/gemini-1.5-flash-8b", "Gemini 1.5 Flash-8B"),
                 ("models/gemini-1.5-pro", "Gemini 1.5 Pro"),
-                ("models/gemini-1.0-pro", "Gemini 1.0 Pro"),
             ]
     else:
         form.model.choices = [
+            ("models/gemini-2.0-flash-exp", "Gemini 2.0 Flash Experimental"),
             ("models/gemini-1.5-flash", "Gemini 1.5 Flash"),
+            ("models/gemini-1.5-flash-8b", "Gemini 1.5 Flash-8B"),
             ("models/gemini-1.5-pro", "Gemini 1.5 Pro"),
-            ("models/gemini-1.0-pro", "Gemini 1.0 Pro"),
         ]
     
     if form.validate_on_submit():

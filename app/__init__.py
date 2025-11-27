@@ -160,9 +160,14 @@ def _register_error_handlers(app: Flask) -> None:
         """Handle 400 Bad Request errors."""
         # 如果是 JSON 請求,返回 JSON 錯誤
         if request.is_json or 'application/json' in request.headers.get('Content-Type', ''):
+            message = "無效的請求資料"
+            # Include specific error description if available (e.g. CSRF error)
+            if hasattr(error, 'description') and error.description:
+                message = f"請求錯誤: {error.description}"
+            
             return jsonify({
                 "success": False,
-                "message": "無效的請求資料"
+                "message": message
             }), 400
         return render_template("errors/400.html"), 400
 

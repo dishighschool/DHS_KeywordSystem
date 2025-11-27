@@ -576,18 +576,30 @@
       const data = await response.json();
       aiEnabled = data.enabled;
       
-      const aiBtn = document.getElementById('ai-generate-btn');
-      if (aiBtn) {
-        if (aiEnabled) {
-          aiBtn.classList.remove('disabled');
-          aiBtn.title = '使用 AI 生成描述 (已啟用)';
-        } else {
-          aiBtn.classList.add('disabled');
-          aiBtn.title = 'AI 功能未啟用，請聯繫管理員';
-        }
-      }
+      updateAIGenerateButton();
     } catch (error) {
       console.error('Failed to check AI status:', error);
+    }
+  }
+  
+  // 更新 AI 生成按鈕狀態
+  function updateAIGenerateButton() {
+    const aiBtn = document.getElementById('ai-generate-btn');
+    const titleInput = document.getElementById('title');
+    
+    if (!aiBtn) return;
+    
+    const titleFilled = titleInput && titleInput.value.trim();
+    
+    if (aiEnabled && titleFilled) {
+      aiBtn.classList.remove('disabled');
+      aiBtn.title = '使用 AI 生成描述';
+    } else if (!aiEnabled) {
+      aiBtn.classList.add('disabled');
+      aiBtn.title = 'AI 功能未啟用，請聯繫管理員';
+    } else {
+      aiBtn.classList.add('disabled');
+      aiBtn.title = '請先填寫關鍵字標題';
     }
   }
   
@@ -628,11 +640,20 @@
     aiBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>生成中...';
     
     try {
+      // Get CSRF token
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+      
+      const headers = {
+          'Content-Type': 'application/json',
+      };
+      
+      if (csrfToken) {
+          headers['X-CSRFToken'] = csrfToken;
+      }
+
       const response = await fetch('{{ url_for("admin.generate_ai_description") }}', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: JSON.stringify({ keyword_title: keywordTitle })
       });
       
@@ -676,6 +697,12 @@
     
     // 檢查 AI 功能狀態
     checkAIStatus();
+    
+    // 監聽標題輸入以更新 AI 按鈕狀態
+    const titleInput = document.getElementById('title');
+    if (titleInput) {
+      titleInput.addEventListener('input', updateAIGenerateButton);
+    }
     
     // SEO 自動生成切換
     const seoAutoGenerate = document.getElementById('seo_auto_generate');

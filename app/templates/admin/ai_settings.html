@@ -393,11 +393,18 @@ async function fetchModels() {
     modelInfo.innerHTML = '<i class="spinner-border spinner-border-sm me-1"></i>正在取得模型列表...';
     
     try {
+        // Get CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        const headers = {
+            'Content-Type': 'application/json',
+        };
+        if (csrfToken) {
+            headers['X-CSRFToken'] = csrfToken;
+        }
+
         const response = await fetch('{{ url_for("admin.fetch_ai_models") }}', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: headers,
             body: JSON.stringify({ api_key: apiKey })
         });
         
@@ -446,11 +453,18 @@ async function testConnection() {
     modal.show();
     
     try {
+        // Get CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        const headers = {
+            'Content-Type': 'application/json',
+        };
+        if (csrfToken) {
+            headers['X-CSRFToken'] = csrfToken;
+        }
+
         const response = await fetch('{{ url_for("admin.test_ai_connection") }}', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
+            headers: headers
         });
         
         const data = await response.json();

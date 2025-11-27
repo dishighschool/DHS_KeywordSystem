@@ -155,7 +155,7 @@ def generate_keyword_description(keyword_title: str) -> dict[str, Any]:
 
         model = genai.GenerativeModel(
             model_name=model_name,
-            system_instruction=settings["system_prompt"],
+            # system_instruction=settings["system_prompt"],  # Temporarily remove
         )
 
         # Configure generation parameters
@@ -217,10 +217,23 @@ def generate_keyword_description(keyword_title: str) -> dict[str, Any]:
         logger.error(f"AI generation failed: {error_message}")
 
         # Provide user-friendly error messages
-        if "location" in error_message.lower():
-            user_error = "您的位置不被支援，請嘗試使用 VPN"
+        if "location" in error_message.lower() or "region" in error_message.lower():
+            user_error = "您的位置不被支援，請嘗試使用 VPN。"
+            try:
+                import urllib.request
+                import json
+                # 嘗試取得伺服器 IP 位置資訊以協助除錯
+                with urllib.request.urlopen("http://ip-api.com/json/", timeout=3) as url:
+                    data = json.loads(url.read().decode())
+                    country = data.get("country", "未知")
+                    region = data.get("regionName", "")
+                    user_error += f" (偵測到的伺服器位置: {country} {region})"
+            except Exception as ip_error:
+                logger.warning(f"Failed to fetch IP info: {ip_error}")
         elif "not found" in error_message.lower() or "404" in error_message:
             user_error = "選擇的模型無效或不支援，請重新選擇模型"
+        elif "429" in error_message or "resource exhausted" in error_message.lower():
+            user_error = "API 使用額度已達上限，請稍後再試或升級您的 Google AI Studio 方案"
         else:
             user_error = f"生成失敗: {error_message}"
 
