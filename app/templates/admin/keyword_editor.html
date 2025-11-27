@@ -272,6 +272,13 @@
                   <i class="bi bi-table"></i>
                 </button>
               </div>
+              <div class="toolbar-divider"></div>
+              <!-- AI 生成按鈕 -->
+              <div class="toolbar-group">
+                <button type="button" class="btn btn-sm btn-outline-primary ai-generate-btn" id="ai-generate-btn" onclick="generateWithAI()" title="使用 AI 生成描述">
+                  <i class="bi bi-robot me-1"></i>AI 生成
+                </button>
+              </div>
             </div>
 
             
@@ -559,9 +566,116 @@
 
 <script src="{{ url_for('static', filename='js/keyword-editor.js') }}"></script>
 <script>
+  // AI 功能狀態
+  let aiEnabled = false;
+  
+  // 檢查 AI 功能狀態
+  async function checkAIStatus() {
+    try {
+      const response = await fetch('{{ url_for("admin.ai_status") }}');
+      const data = await response.json();
+      aiEnabled = data.enabled;
+      
+      const aiBtn = document.getElementById('ai-generate-btn');
+      if (aiBtn) {
+        if (aiEnabled) {
+          aiBtn.classList.remove('disabled');
+          aiBtn.title = '使用 AI 生成描述 (已啟用)';
+        } else {
+          aiBtn.classList.add('disabled');
+          aiBtn.title = 'AI 功能未啟用，請聯繫管理員';
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check AI status:', error);
+    }
+  }
+  
+  // AI 生成描述
+  async function generateWithAI() {
+    const titleInput = document.getElementById('title');
+    const textarea = document.getElementById('description_markdown');
+    const aiBtn = document.getElementById('ai-generate-btn');
+    
+    if (!titleInput || !textarea) {
+      showNotification('找不到編輯器元素', 'error');
+      return;
+    }
+    
+    const keywordTitle = titleInput.value.trim();
+    
+    if (!keywordTitle) {
+      showNotification('請先填寫關鍵字標題', 'warning');
+      // 導航到基本資訊分頁並聚焦標題欄位
+      navigateToSection('basic');
+      setTimeout(() => {
+        titleInput.focus();
+        titleInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+      return;
+    }
+    
+    // 確認是否要覆蓋現有內容
+    if (textarea.value.trim()) {
+      if (!confirm('目前已有內容，AI 生成的內容將會覆蓋現有內容。確定要繼續嗎？')) {
+        return;
+      }
+    }
+    
+    // 顯示載入狀態
+    const originalHtml = aiBtn.innerHTML;
+    aiBtn.disabled = true;
+    aiBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>生成中...';
+    
+    try {
+      const response = await fetch('{{ url_for("admin.generate_ai_description") }}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ keyword_title: keywordTitle })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // 填入生成的內容
+        textarea.value = data.content;
+        textarea.dispatchEvent(new Event('input'));
+        
+        // 顯示成功訊息
+        let message = 'AI 已生成描述內容';
+        if (data.usage && data.usage.total_tokens) {
+          message += ` (使用 ${data.usage.total_tokens} tokens)`;
+        }
+        showNotification(message, 'success');
+        
+        // 標記表單已變更
+        formChanged = true;
+        
+        // 更新統計
+        if (typeof updateStats === 'function') {
+          updateStats();
+        }
+      } else {
+        showNotification(data.message || 'AI 生成失敗', 'error');
+      }
+    } catch (error) {
+      console.error('AI generation error:', error);
+      showNotification('AI 生成時發生錯誤: ' + error.message, 'error');
+    } finally {
+      // 恢復按鈕狀態
+      aiBtn.disabled = false;
+      aiBtn.innerHTML = originalHtml;
+    }
+  }
+  
   // 初始化編輯器
   document.addEventListener('DOMContentLoaded', function() {
     initKeywordEditor();
+    
+    // 檢查 AI 功能狀態
+    checkAIStatus();
     
     // SEO 自動生成切換
     const seoAutoGenerate = document.getElementById('seo_auto_generate');
