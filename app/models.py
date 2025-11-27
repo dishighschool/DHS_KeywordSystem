@@ -203,6 +203,13 @@ class SiteSettingKey(enum.StrEnum):
     REGISTRATION_ADMIN_KEY = "registration_admin_key"
     BACKUP_DISCORD_WEBHOOK_URL = "backup_discord_webhook_url"
     MEMBER_API_BASE_URL = "member_api_base_url"
+    # AI Settings
+    AI_API_KEY = "ai_api_key"
+    AI_MODEL = "ai_model"
+    AI_SYSTEM_PROMPT = "ai_system_prompt"
+    AI_MAX_TOKENS = "ai_max_tokens"
+    AI_TEMPERATURE = "ai_temperature"
+    AI_ENABLED = "ai_enabled"
 
 
 class SiteSetting(TimestampMixin, BaseModel):
@@ -273,6 +280,24 @@ class EditLog(TimestampMixin, BaseModel):
     user_agent: Mapped[str | None] = mapped_column(db.Text, nullable=True)
 
     user: Mapped[User] = relationship(backref="edit_logs")
+
+
+class AIUsageLog(TimestampMixin, BaseModel):
+    """AI 使用記錄 - 追蹤 AI 生成的使用量和成本"""
+    __tablename__ = "ai_usage_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(db.ForeignKey("users.id"), nullable=False, index=True)
+    model: Mapped[str] = mapped_column(nullable=False)
+    prompt_tokens: Mapped[int] = mapped_column(default=0, nullable=False)
+    completion_tokens: Mapped[int] = mapped_column(default=0, nullable=False)
+    total_tokens: Mapped[int] = mapped_column(default=0, nullable=False)
+    keyword_title: Mapped[str | None] = mapped_column(nullable=True)
+    generated_content: Mapped[str | None] = mapped_column(db.Text, nullable=True)
+    success: Mapped[bool] = mapped_column(default=True, nullable=False)
+    error_message: Mapped[str | None] = mapped_column(db.Text, nullable=True)
+
+    user: Mapped[User] = relationship(backref="ai_usage_logs")
 
 
 class KeywordGoalList(TimestampMixin, BaseModel):

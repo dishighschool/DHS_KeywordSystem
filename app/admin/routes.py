@@ -3448,3 +3448,259 @@ def get_backup_stats():
     stats = BackupService.get_backup_stats()
     return jsonify(stats)
 
+
+# ============================================================================
+# AI 設定管理 (管理員專用)
+# ============================================================================
+
+@admin_bp.route("/ai-settings", methods=["GET"])
+@admin_required
+def ai_settings():
+    """AI 設定頁面 - 管理 Google Gemini API"""
+    from ..forms import AISettingsForm
+    from ..utils.ai_service import (
+        DEFAULT_SYSTEM_PROMPT,
+        fetch_available_models,
+        get_ai_settings,
+        get_usage_statistics,
+        get_user_usage_history,
+    )
+    
+    settings = get_ai_settings()
+    
+    form = AISettingsForm(
+        api_key=settings["api_key"],
+        model=settings["model"],
+        system_prompt=settings["system_prompt"] or DEFAULT_SYSTEM_PROMPT,
+        max_tokens=settings["max_tokens"],
+        temperature=str(settings["temperature"]),
+        enabled=settings["enabled"],
+    )
+    
+    # Fetch available models if API key is set
+    available_models = []
+    if settings["api_key"]:
+        available_models = fetch_available_models(settings["api_key"])
+    
+    # Set model choices
+    if available_models:
+        form.model.choices = [
+            (m["name"], f"{m['display_name']}") 
+            for m in available_models
+        ]
+    else:
+        # Default choices if no API key or fetch failed
+        form.model.choices = [
+            ("gemini-1.5-flash", "Gemini 1.5 Flash"),
+            ("gemini-1.5-pro", "Gemini 1.5 Pro"),
+            ("gemini-1.0-pro", "Gemini 1.0 Pro"),
+        ]
+    
+    # Get usage statistics
+    usage_stats = get_usage_statistics()
+    
+    # Get recent usage history
+    usage_history = get_user_usage_history(limit=30)
+    
+    return render_template(
+        "admin/ai_settings.html",
+        form=form,
+        available_models=available_models,
+        usage_stats=usage_stats,
+        usage_history=usage_history,
+        settings=settings,
+    )
+
+
+@admin_bp.post("/ai-settings/update")
+@admin_required
+def update_ai_settings():
+    """更新 AI 設定"""
+    from ..forms import AISettingsForm
+    from ..utils.ai_service import DEFAULT_SYSTEM_PROMPT, fetch_available_models
+    
+    form = AISettingsForm()
+    
+    # Set model choices before validation
+    api_key = form.api_key.data
+    if api_key:
+        available_models = fetch_available_models(api_key)
+        if available_models:
+            form.model.choices = [
+                (m["name"], m["display_name"]) 
+                for m in available_models
+            ]
+        else:
+            form.model.choices = [
+                ("gemini-1.5-flash", "Gemini 1.5 Flash"),
+                ("gemini-1.5-pro", "Gemini 1.5 Pro"),
+                ("gemini-1.0-pro", "Gemini 1.0 Pro"),
+            ]
+    else:
+        form.model.choices = [
+            ("gemini-1.5-flash", "Gemini 1.5 Flash"),
+            ("gemini-1.5-pro", "Gemini 1.5 Pro"),
+            ("gemini-1.0-pro", "Gemini 1.0 Pro"),
+        ]
+    
+    if form.validate_on_submit():
+        # Save settings
+        SiteSetting.set(SiteSettingKey.AI_API_KEY, form.api_key.data or "")
+        SiteSetting.set(SiteSettingKey.AI_MODEL, form.model.data or "gemini-1.5-flash")
+        SiteSetting.set(
+            SiteSettingKey.AI_SYSTEM_PROMPT, 
+            form.system_prompt.data or DEFAULT_SYSTEM_PROMPT
+        )
+        SiteSetting.set(SiteSettingKey.AI_MAX_TOKENS, str(form.max_tokens.data or 500))
+        
+        # Validate temperature
+        try:
+            temp = float(form.temperature.data or "0.7")
+            if temp < 0.0:
+                temp = 0.0
+            elif temp > 2.0:
+                temp = 2.0
+        except (ValueError, TypeError):
+            temp = 0.7
+        SiteSetting.set(SiteSettingKey.AI_TEMPERATURE, str(temp))
+        
+        SiteSetting.set(SiteSettingKey.AI_ENABLED, "true" if form.enabled.data else "false")
+        
+        flash("AI 設定已更新。", "success")
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f"{field}: {error}", "danger")
+    
+    return redirect(url_for("admin.ai_settings"))
+
+
+@admin_bp.post("/ai-settings/fetch-models")
+@admin_required
+def fetch_ai_models():
+    """取得可用的 AI 模型列表"""
+    from ..utils.ai_service import fetch_available_models
+    
+    data = request.get_json()
+    api_key = data.get("api_key", "") if data else ""
+    
+    if not api_key:
+        return jsonify({"success": False, "message": "請提供 API 金鑰", "models": []})
+    
+    models = fetch_available_models(api_key)
+    
+    if models:
+        return jsonify({
+            "success": True,
+            "models": models,
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "message": "無法取得模型列表,請檢查 API 金鑰是否正確",
+            "models": [],
+        })
+
+
+@admin_bp.post("/ai-settings/test")
+@admin_required
+def test_ai_connection():
+    """測試 AI 連接"""
+    from ..utils.ai_service import generate_keyword_description, get_ai_settings
+    
+    settings = get_ai_settings()
+    
+    if not settings["api_key"]:
+        return jsonify({
+            "success": False,
+            "message": "未設定 API 金鑰",
+        })
+    
+    # Test with a simple keyword
+    result = generate_keyword_description("測試")
+    
+    if result["success"]:
+        return jsonify({
+            "success": True,
+            "message": "連接成功！",
+            "content": result["content"],
+            "usage": result.get("usage", {}),
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "message": result.get("error", "測試失敗"),
+        })
+
+
+@admin_bp.get("/ai-settings/usage-history")
+@admin_required
+def ai_usage_history():
+    """取得 AI 使用記錄"""
+    from ..utils.ai_service import get_user_usage_history
+    
+    user_id = request.args.get("user_id", type=int)
+    limit = request.args.get("limit", 50, type=int)
+    
+    history = get_user_usage_history(user_id=user_id, limit=min(limit, 200))
+    
+    return jsonify({
+        "success": True,
+        "history": history,
+    })
+
+
+# ============================================================================
+# 關鍵字 AI 生成 API
+# ============================================================================
+
+@admin_bp.post("/api/ai/generate-description")
+@login_required
+def generate_ai_description():
+    """使用 AI 生成關鍵字描述"""
+    from ..utils.ai_service import generate_keyword_description, is_ai_enabled
+    
+    if not is_ai_enabled():
+        return jsonify({
+            "success": False,
+            "message": "AI 功能未啟用,請聯繫管理員",
+        }), 400
+    
+    data = request.get_json()
+    keyword_title = data.get("keyword_title", "") if data else ""
+    
+    if not keyword_title or not keyword_title.strip():
+        return jsonify({
+            "success": False,
+            "message": "請先填寫關鍵字標題",
+        }), 400
+    
+    result = generate_keyword_description(keyword_title.strip())
+    
+    if result["success"]:
+        return jsonify({
+            "success": True,
+            "content": result["content"],
+            "usage": result.get("usage", {}),
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "message": result.get("error", "生成失敗"),
+        }), 500
+
+
+@admin_bp.get("/api/ai/status")
+@login_required
+def ai_status():
+    """檢查 AI 功能狀態"""
+    from ..utils.ai_service import get_ai_settings, is_ai_enabled
+    
+    settings = get_ai_settings()
+    
+    return jsonify({
+        "enabled": is_ai_enabled(),
+        "model": settings["model"] if is_ai_enabled() else None,
+    })
+
+

@@ -1,0 +1,473 @@
+{% extends "admin/base.html" %}
+{% block title %}AI 設定{% endblock %}
+{% block header_title %}AI 設定{% endblock %}
+{% block page_icon_class %}bi bi-robot{% endblock %}
+{% block page_title %}AI 設定{% endblock %}
+{% block page_subtitle %}管理 Google Gemini API 設定與用量統計{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 左側：設定表單 -->
+    <div class="col-lg-8">
+        <div class="admin-card">
+            <div class="admin-card-header d-flex justify-content-between align-items-start">
+                <div>
+                    <h2 class="admin-card-title">
+                        <i class="bi bi-gear-fill admin-card-icon"></i>
+                        Google Gemini API 設定
+                    </h2>
+                    <p class="text-muted mb-0 mt-1">設定 AI 生成功能的 API 金鑰和參數</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-primary" onclick="testConnection()">
+                        <i class="bi bi-plug me-1"></i>測試連接
+                    </button>
+                    <button type="submit" form="aiSettingsForm" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>儲存設定
+                    </button>
+                </div>
+            </div>
+            <div class="admin-card-body">
+                <form method="post" action="{{ url_for('admin.update_ai_settings') }}" id="aiSettingsForm">
+                    {{ form.hidden_tag() }}
+                    
+                    <!-- 啟用狀態 -->
+                    <div class="alert {% if settings.enabled and settings.api_key %}alert-success{% else %}alert-warning{% endif %} mb-4">
+                        <div class="form-check form-switch">
+                            {{ form.enabled(class='form-check-input', id='ai_enabled', role='switch') }}
+                            <label class="form-check-label fw-semibold" for="ai_enabled">
+                                {% if settings.enabled and settings.api_key %}
+                                    <i class="bi bi-check-circle-fill text-success me-1"></i>AI 功能已啟用
+                                {% else %}
+                                    <i class="bi bi-exclamation-circle-fill text-warning me-1"></i>AI 功能未啟用
+                                {% endif %}
+                            </label>
+                        </div>
+                        <small class="text-muted d-block mt-1">
+                            啟用後，編輯器中的「AI 生成」按鈕將可用
+                        </small>
+                    </div>
+                    
+                    <!-- API 金鑰 -->
+                    <div class="mb-4">
+                        <label for="api_key" class="form-label fw-semibold">
+                            <i class="bi bi-key me-1"></i>API 金鑰
+                        </label>
+                        <div class="input-group">
+                            {{ form.api_key(class='form-control', id='api_key', placeholder='輸入 Google AI Studio API 金鑰', type='password') }}
+                            <button class="btn btn-outline-secondary" type="button" onclick="toggleApiKeyVisibility()">
+                                <i class="bi bi-eye" id="apiKeyToggleIcon"></i>
+                            </button>
+                            <button class="btn btn-outline-primary" type="button" onclick="fetchModels()">
+                                <i class="bi bi-arrow-clockwise me-1"></i>取得模型
+                            </button>
+                        </div>
+                        <div class="form-text">
+                            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">
+                                <i class="bi bi-box-arrow-up-right me-1"></i>前往 Google AI Studio 取得 API 金鑰
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 模型選擇 -->
+                    <div class="mb-4">
+                        <label for="model" class="form-label fw-semibold">
+                            <i class="bi bi-cpu me-1"></i>AI 模型
+                        </label>
+                        {{ form.model(class='form-select', id='model') }}
+                        <div class="form-text" id="modelInfo">
+                            {% if available_models %}
+                                已找到 {{ available_models|length }} 個可用模型
+                            {% else %}
+                                請先設定 API 金鑰並點擊「取得模型」
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- 系統提示詞 -->
+                    <div class="mb-4">
+                        <label for="system_prompt" class="form-label fw-semibold">
+                            <i class="bi bi-chat-left-text me-1"></i>系統提示詞
+                        </label>
+                        {{ form.system_prompt(class='form-control', id='system_prompt', rows='8', placeholder='輸入 AI 的系統提示詞...') }}
+                        <div class="form-text">
+                            系統提示詞將影響 AI 生成內容的風格和格式
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- 最大 Token 數 -->
+                        <div class="col-md-6 mb-4">
+                            <label for="max_tokens" class="form-label fw-semibold">
+                                <i class="bi bi-hash me-1"></i>最大輸出 Token 數
+                            </label>
+                            {{ form.max_tokens(class='form-control', id='max_tokens', min='50', max='4096') }}
+                            <div class="form-text">
+                                建議範圍：200-1000
+                            </div>
+                        </div>
+                        
+                        <!-- Temperature -->
+                        <div class="col-md-6 mb-4">
+                            <label for="temperature" class="form-label fw-semibold">
+                                <i class="bi bi-thermometer me-1"></i>Temperature
+                            </label>
+                            {{ form.temperature(class='form-control', id='temperature', placeholder='0.7') }}
+                            <div class="form-text">
+                                0.0 (更穩定) ~ 2.0 (更有創意)
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 使用記錄 -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h5 class="admin-card-title">
+                    <i class="bi bi-clock-history admin-card-icon"></i>
+                    使用記錄
+                </h5>
+            </div>
+            <div class="admin-card-body">
+                {% if usage_history %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>時間</th>
+                                <th>用戶</th>
+                                <th>關鍵字</th>
+                                <th>模型</th>
+                                <th>Token</th>
+                                <th>狀態</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in usage_history %}
+                            <tr>
+                                <td class="text-muted small">
+                                    {{ record.created_at[:10] }} {{ record.created_at[11:16] }}
+                                </td>
+                                <td>{{ record.username }}</td>
+                                <td>
+                                    {% if record.keyword_title %}
+                                        <span class="badge bg-light text-dark">{{ record.keyword_title }}</span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="small">{{ record.model }}</td>
+                                <td>{{ record.total_tokens }}</td>
+                                <td>
+                                    {% if record.success %}
+                                        <span class="badge bg-success">成功</span>
+                                    {% else %}
+                                        <span class="badge bg-danger" title="{{ record.error_message or '' }}">失敗</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                    <p class="mt-2 mb-0">尚無使用記錄</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- 右側：統計資訊 -->
+    <div class="col-lg-4">
+        <!-- 用量統計卡片 -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h5 class="admin-card-title">
+                    <i class="bi bi-bar-chart admin-card-icon"></i>
+                    用量統計
+                </h5>
+            </div>
+            <div class="admin-card-body">
+                <div class="row g-3">
+                    <!-- 今日 -->
+                    <div class="col-6">
+                        <div class="p-3 rounded bg-primary bg-opacity-10 text-center">
+                            <div class="h4 mb-1 text-primary">{{ usage_stats.today.requests }}</div>
+                            <small class="text-muted">今日請求</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 rounded bg-info bg-opacity-10 text-center">
+                            <div class="h4 mb-1 text-info">{{ usage_stats.today.tokens or 0 }}</div>
+                            <small class="text-muted">今日 Token</small>
+                        </div>
+                    </div>
+                    <!-- 本週 -->
+                    <div class="col-6">
+                        <div class="p-3 rounded bg-success bg-opacity-10 text-center">
+                            <div class="h4 mb-1 text-success">{{ usage_stats.week.requests }}</div>
+                            <small class="text-muted">本週請求</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 rounded bg-warning bg-opacity-10 text-center">
+                            <div class="h4 mb-1 text-warning">{{ usage_stats.week.tokens or 0 }}</div>
+                            <small class="text-muted">本週 Token</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr class="my-3">
+                
+                <!-- 總計 -->
+                <div class="small">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">總請求數</span>
+                        <strong>{{ usage_stats.total.requests }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">總 Token 數</span>
+                        <strong>{{ usage_stats.total.total_tokens or 0 }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">輸入 Token</span>
+                        <span>{{ usage_stats.total.prompt_tokens or 0 }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">輸出 Token</span>
+                        <span>{{ usage_stats.total.completion_tokens or 0 }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">錯誤次數</span>
+                        <span class="text-danger">{{ usage_stats.errors }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 使用提示 -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h5 class="admin-card-title">
+                    <i class="bi bi-lightbulb admin-card-icon"></i>
+                    使用說明
+                </h5>
+            </div>
+            <div class="admin-card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-3">
+                        <i class="bi bi-1-circle text-primary me-2"></i>
+                        <strong>取得 API 金鑰</strong>
+                        <br><small class="text-muted">前往 Google AI Studio 創建免費 API 金鑰</small>
+                    </li>
+                    <li class="mb-3">
+                        <i class="bi bi-2-circle text-primary me-2"></i>
+                        <strong>選擇模型</strong>
+                        <br><small class="text-muted">Gemini 1.5 Flash 速度快，Pro 品質更高</small>
+                    </li>
+                    <li class="mb-3">
+                        <i class="bi bi-3-circle text-primary me-2"></i>
+                        <strong>調整提示詞</strong>
+                        <br><small class="text-muted">自訂系統提示詞以符合您的需求</small>
+                    </li>
+                    <li class="mb-0">
+                        <i class="bi bi-4-circle text-primary me-2"></i>
+                        <strong>啟用功能</strong>
+                        <br><small class="text-muted">啟用後即可在編輯器中使用 AI 生成</small>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- 費用說明 -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h5 class="admin-card-title">
+                    <i class="bi bi-currency-dollar admin-card-icon"></i>
+                    費用說明
+                </h5>
+            </div>
+            <div class="admin-card-body small">
+                <p class="text-muted mb-2">
+                    Google Gemini API 提供免費額度：
+                </p>
+                <ul class="mb-0 text-muted">
+                    <li>Gemini 1.5 Flash: 每分鐘 15 次請求</li>
+                    <li>Gemini 1.5 Pro: 每分鐘 2 次請求</li>
+                    <li>超過免費額度後按量計費</li>
+                </ul>
+                <a href="https://ai.google.dev/pricing" target="_blank" rel="noopener" class="mt-2 d-block">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>查看完整定價
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 測試結果 Modal -->
+<div class="modal fade" id="testResultModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-plug me-2"></i>連接測試結果
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="testResultBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">測試中...</span>
+                    </div>
+                    <p class="mt-2 mb-0">正在測試連接...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ super() }}
+<script>
+// Toggle API key visibility
+function toggleApiKeyVisibility() {
+    const input = document.getElementById('api_key');
+    const icon = document.getElementById('apiKeyToggleIcon');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+
+// Fetch available models
+async function fetchModels() {
+    const apiKey = document.getElementById('api_key').value;
+    
+    if (!apiKey) {
+        alert('請先輸入 API 金鑰');
+        return;
+    }
+    
+    const modelSelect = document.getElementById('model');
+    const modelInfo = document.getElementById('modelInfo');
+    const currentValue = modelSelect.value;
+    
+    modelInfo.innerHTML = '<i class="spinner-border spinner-border-sm me-1"></i>正在取得模型列表...';
+    
+    try {
+        const response = await fetch('{{ url_for("admin.fetch_ai_models") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ api_key: apiKey })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.models.length > 0) {
+            // Clear and populate select
+            modelSelect.innerHTML = '';
+            data.models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.name;
+                option.textContent = model.display_name;
+                option.title = model.description || '';
+                modelSelect.appendChild(option);
+            });
+            
+            // Restore previous selection if exists
+            if (currentValue) {
+                modelSelect.value = currentValue;
+            }
+            
+            modelInfo.innerHTML = `<i class="bi bi-check-circle text-success me-1"></i>已找到 ${data.models.length} 個可用模型`;
+        } else {
+            modelInfo.innerHTML = `<i class="bi bi-exclamation-circle text-danger me-1"></i>${data.message || '無法取得模型'}`;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        modelInfo.innerHTML = `<i class="bi bi-exclamation-circle text-danger me-1"></i>取得模型失敗: ${error.message}`;
+    }
+}
+
+// Test AI connection
+async function testConnection() {
+    const modal = new bootstrap.Modal(document.getElementById('testResultModal'));
+    const resultBody = document.getElementById('testResultBody');
+    
+    resultBody.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">測試中...</span>
+            </div>
+            <p class="mt-2 mb-0">正在測試連接...</p>
+        </div>
+    `;
+    
+    modal.show();
+    
+    try {
+        const response = await fetch('{{ url_for("admin.test_ai_connection") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            resultBody.innerHTML = `
+                <div class="alert alert-success mb-3">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <strong>${data.message}</strong>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">生成的測試內容：</label>
+                    <div class="p-3 bg-light rounded" style="max-height: 200px; overflow-y: auto;">
+                        ${data.content || '(無內容)'}
+                    </div>
+                </div>
+                ${data.usage ? `
+                <div class="small text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    使用 Token: 輸入 ${data.usage.prompt_tokens || 0}, 輸出 ${data.usage.completion_tokens || 0}
+                </div>
+                ` : ''}
+            `;
+        } else {
+            resultBody.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-x-circle-fill me-2"></i>
+                    <strong>測試失敗</strong>
+                    <p class="mb-0 mt-2">${data.message || '未知錯誤'}</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        resultBody.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-x-circle-fill me-2"></i>
+                <strong>連接錯誤</strong>
+                <p class="mb-0 mt-2">${error.message}</p>
+            </div>
+        `;
+    }
+}
+</script>
+{% endblock %}
