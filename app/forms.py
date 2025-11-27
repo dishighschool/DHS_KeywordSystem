@@ -1,4 +1,5 @@
 """WTForms definitions for admin CRUD interfaces."""
+
 from __future__ import annotations
 
 from flask_wtf import FlaskForm
@@ -16,17 +17,25 @@ from wtforms import (
     URLField,
     ValidationError,
 )
-from wtforms.validators import DataRequired, Length, NumberRange, Optional, URL, ValidationError as WTFormsValidationError
+from wtforms.validators import (
+    DataRequired,
+    Length,
+    NumberRange,
+    Optional,
+    URL,
+    ValidationError as WTFormsValidationError,
+)
 
 
 def validate_youtube_url(form, field):
     """驗證是否為有效的 YouTube URL"""
     if not field.data:
         return  # 如果是空的，由 Optional() 處理
-    
+
     from .utils.youtube import extract_youtube_video_id
+
     if not extract_youtube_video_id(field.data):
-        raise ValidationError('必須是有效的 YouTube 影片連結')
+        raise ValidationError("必須是有效的 YouTube 影片連結")
 
 
 class CategoryForm(FlaskForm):
@@ -71,20 +80,21 @@ class SiteBrandingForm(FlaskForm):
     footer_description = TextAreaField("頁尾描述文字", validators=[Optional(), Length(max=500)])
     header_logo_url = URLField("導航 Logo 連結", validators=[Optional(), URL()])
     header_logo_file = FileField(
-        "或上傳 Logo 圖片", 
-        validators=[Optional(), FileAllowed(["png", "jpg", "jpeg", "gif", "svg", "webp"], "只允許上傳圖片檔案")]
+        "或上傳 Logo 圖片",
+        validators=[Optional(), FileAllowed(["png", "jpg", "jpeg", "gif", "svg", "webp"], "只允許上傳圖片檔案")],
     )
     footer_logo_url = URLField("底部 Logo 連結", validators=[Optional(), URL()])
     footer_logo_file = FileField(
-        "或上傳 Logo 圖片", 
-        validators=[Optional(), FileAllowed(["png", "jpg", "jpeg", "gif", "svg", "webp"], "只允許上傳圖片檔案")]
+        "或上傳 Logo 圖片",
+        validators=[Optional(), FileAllowed(["png", "jpg", "jpeg", "gif", "svg", "webp"], "只允許上傳圖片檔案")],
     )
     favicon_file = FileField(
-        "網站圖示 (Favicon)", 
-        validators=[Optional(), FileAllowed(["ico", "png"], "只允許上傳 .ico 或 .png 檔案")]
+        "網站圖示 (Favicon)", validators=[Optional(), FileAllowed(["ico", "png"], "只允許上傳 .ico 或 .png 檔案")]
     )
     footer_copy = StringField("底部版權文字", validators=[Optional(), Length(max=255)])
-    member_api_base_url = URLField("成員頁面 API 基底 URL", validators=[Optional(), URL()], default="http://member.dhs.todothere.com")
+    member_api_base_url = URLField(
+        "成員頁面 API 基底 URL", validators=[Optional(), URL()], default="http://member.dhs.todothere.com"
+    )
     submit = SubmitField("更新品牌設定")
 
 
@@ -128,8 +138,26 @@ class UserProfileForm(FlaskForm):
 
 
 class APISettingsForm(FlaskForm):
-    member_api_base_url = URLField("成員頁面 API 基底 URL", validators=[DataRequired(), URL()], default="http://member.dhs.todothere.com")
+    member_api_base_url = URLField(
+        "成員頁面 API 基底 URL", validators=[DataRequired(), URL()], default="http://member.dhs.todothere.com"
+    )
     submit = SubmitField("儲存設定")
+
+
+class AISettingsForm(FlaskForm):
+    """AI 設定表單"""
+
+    api_key = StringField("Google Gemini API 金鑰", validators=[Optional(), Length(max=500)])
+    model = SelectField("AI 模型", choices=[], validators=[Optional()])
+    system_prompt = TextAreaField(
+        "系統提示詞",
+        validators=[Optional(), Length(max=5000)],
+        render_kw={"rows": 8, "placeholder": "輸入 AI 的系統提示詞..."},
+    )
+    max_tokens = IntegerField("最大輸出 Token 數", validators=[Optional(), NumberRange(min=50, max=4096)], default=500)
+    temperature = StringField("Temperature (0.0 - 2.0)", validators=[Optional()], default="0.7")
+    enabled = BooleanField("啟用 AI 功能", default=False)
+    submit = SubmitField("儲存 AI 設定")
 
 
 class KeywordGoalListForm(FlaskForm):
@@ -137,8 +165,8 @@ class KeywordGoalListForm(FlaskForm):
     description = TextAreaField("描述", validators=[Optional(), Length(max=1000)])
     category_name = StringField("分類名稱", validators=[DataRequired(), Length(max=120)])
     keywords_text = TextAreaField(
-        "關鍵字列表 (每行一個)", 
+        "關鍵字列表 (每行一個)",
         validators=[DataRequired()],
-        render_kw={"rows": 10, "placeholder": "請輸入關鍵字,每行一個\n例如:\n數學\n物理\n化學"}
+        render_kw={"rows": 10, "placeholder": "請輸入關鍵字,每行一個\n例如:\n數學\n物理\n化學"},
     )
     submit = SubmitField("建立清單")

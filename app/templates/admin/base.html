@@ -501,6 +501,10 @@
                     <div class="sidebar-menu-icon"><i class="bi bi-api"></i></div>
                     <div>API 管理</div>
                 </a>
+                <a href="{{ url_for('admin.ai_settings') }}" class="sidebar-menu-item {% if request.endpoint == 'admin.ai_settings' %}active{% endif %}">
+                    <div class="sidebar-menu-icon"><i class="bi bi-robot"></i></div>
+                    <div>AI 設定</div>
+                </a>
                 <a href="{{ url_for('admin.view_edit_logs') }}" class="sidebar-menu-item {% if request.endpoint == 'admin.view_edit_logs' %}active{% endif %}">
                     <div class="sidebar-menu-icon"><i class="bi bi-clock-history"></i></div>
                     <div>編輯日誌</div>
