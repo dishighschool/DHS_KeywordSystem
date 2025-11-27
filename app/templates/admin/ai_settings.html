@@ -338,6 +338,31 @@
 {% block extra_scripts %}
 {{ super() }}
 <script>
+// Notification helper
+function showNotification(message, type = 'info') {
+    const alertClass = {
+        'success': 'alert-success',
+        'error': 'alert-danger',
+        'warning': 'alert-warning',
+        'info': 'alert-info'
+    }[type] || 'alert-info';
+
+    const notification = document.createElement('div');
+    notification.className = `alert ${alertClass} alert-dismissible fade show`;
+    notification.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 10000; min-width: 300px;';
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
 // Toggle API key visibility
 function toggleApiKeyVisibility() {
     const input = document.getElementById('api_key');
@@ -357,7 +382,7 @@ async function fetchModels() {
     const apiKey = document.getElementById('api_key').value;
     
     if (!apiKey) {
-        alert('請先輸入 API 金鑰');
+        showNotification('請先輸入 API 金鑰', 'warning');
         return;
     }
     

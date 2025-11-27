@@ -79,6 +79,33 @@ class TestAIService:
         assert saved_log.success is True
         assert saved_log.user.username == "test_user"
 
+    def test_ai_usage_log_nullable_user(self, db_session):
+        """Test AIUsageLog model creation with nullable user_id."""
+        from app.models import AIUsageLog
+
+        # Create an AI usage log without user
+        log = AIUsageLog(
+            user_id=None,
+            model="gemini-1.5-flash",
+            prompt_tokens=50,
+            completion_tokens=25,
+            total_tokens=75,
+            keyword_title="匿名測試",
+            generated_content="這是匿名測試內容",
+            success=True,
+        )
+        db_session.add(log)
+        db_session.commit()
+
+        # Verify the log was created with null user_id
+        saved_log = AIUsageLog.query.filter_by(keyword_title="匿名測試").first()
+        assert saved_log is not None
+        assert saved_log.user_id is None
+        assert saved_log.user is None
+        assert saved_log.model == "gemini-1.5-flash"
+        assert saved_log.total_tokens == 75
+        assert saved_log.success is True
+
     def test_get_ai_settings_defaults(self, app, db_session):
         """Test get_ai_settings returns defaults when no settings are configured."""
         with app.app_context():

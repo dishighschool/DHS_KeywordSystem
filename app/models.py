@@ -287,7 +287,7 @@ class AIUsageLog(TimestampMixin, BaseModel):
     __tablename__ = "ai_usage_logs"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(db.ForeignKey("users.id"), nullable=False, index=True)
+    user_id: Mapped[int | None] = mapped_column(db.ForeignKey("users.id"), nullable=True, index=True)
     model: Mapped[str] = mapped_column(nullable=False)
     prompt_tokens: Mapped[int] = mapped_column(default=0, nullable=False)
     completion_tokens: Mapped[int] = mapped_column(default=0, nullable=False)
@@ -297,7 +297,7 @@ class AIUsageLog(TimestampMixin, BaseModel):
     success: Mapped[bool] = mapped_column(default=True, nullable=False)
     error_message: Mapped[str | None] = mapped_column(db.Text, nullable=True)
 
-    user: Mapped[User] = relationship(backref="ai_usage_logs")
+    user: Mapped[User | None] = relationship(backref="ai_usage_logs")
 
 
 class KeywordGoalList(TimestampMixin, BaseModel):

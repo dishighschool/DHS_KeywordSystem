@@ -30,12 +30,24 @@ def get_ai_settings() -> dict[str, Any]:
     """Get AI settings from database."""
     from ..models import SiteSetting, SiteSettingKey
 
+    # Safe integer conversion with fallback
+    try:
+        max_tokens = int(SiteSetting.get(SiteSettingKey.AI_MAX_TOKENS, "500") or "500")
+    except (ValueError, TypeError):
+        max_tokens = 500
+
+    # Safe float conversion with fallback
+    try:
+        temperature = float(SiteSetting.get(SiteSettingKey.AI_TEMPERATURE, "0.7") or "0.7")
+    except (ValueError, TypeError):
+        temperature = 0.7
+
     return {
         "api_key": SiteSetting.get(SiteSettingKey.AI_API_KEY, ""),
         "model": SiteSetting.get(SiteSettingKey.AI_MODEL, "gemini-1.5-flash"),
         "system_prompt": SiteSetting.get(SiteSettingKey.AI_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT),
-        "max_tokens": int(SiteSetting.get(SiteSettingKey.AI_MAX_TOKENS, "500") or "500"),
-        "temperature": float(SiteSetting.get(SiteSettingKey.AI_TEMPERATURE, "0.7") or "0.7"),
+        "max_tokens": max_tokens,
+        "temperature": temperature,
         "enabled": SiteSetting.get(SiteSettingKey.AI_ENABLED, "false") == "true",
     }
 
@@ -155,9 +167,10 @@ def generate_keyword_description(keyword_title: str) -> dict[str, Any]:
         if response.text:
             generated_text = response.text.strip()
 
-        # Log usage
+        # Log usage (user_id is None if not authenticated)
+        user_id = current_user.id if current_user and current_user.is_authenticated else None
         usage_log = AIUsageLog(
-            user_id=current_user.id if current_user and current_user.is_authenticated else 0,
+            user_id=user_id,
             model=settings["model"],
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
@@ -186,8 +199,9 @@ def generate_keyword_description(keyword_title: str) -> dict[str, Any]:
 
         # Log failed attempt
         try:
+            user_id = current_user.id if current_user and current_user.is_authenticated else None
             usage_log = AIUsageLog(
-                user_id=current_user.id if current_user and current_user.is_authenticated else 0,
+                user_id=user_id,
                 model=settings["model"],
                 prompt_tokens=0,
                 completion_tokens=0,
