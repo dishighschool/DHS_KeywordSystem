@@ -3598,7 +3598,7 @@ def fetch_ai_models():
     else:
         return jsonify({
             "success": False,
-            "message": "無法取得模型列表,請檢查 API 金鑰是否正確",
+            "message": "無法取得模型列表，可能您的位置不被支援或 API 金鑰無效，請嘗試使用 VPN 或檢查金鑰",
             "models": [],
         })
 

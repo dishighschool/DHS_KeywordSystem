@@ -216,6 +216,14 @@ def generate_keyword_description(keyword_title: str) -> dict[str, Any]:
         error_message = str(e)
         logger.error(f"AI generation failed: {error_message}")
 
+        # Provide user-friendly error messages
+        if "location" in error_message.lower():
+            user_error = "您的位置不被支援，請嘗試使用 VPN"
+        elif "not found" in error_message.lower() or "404" in error_message:
+            user_error = "選擇的模型無效或不支援，請重新選擇模型"
+        else:
+            user_error = f"生成失敗: {error_message}"
+
         # Log failed attempt
         try:
             user_id = current_user.id if current_user and current_user.is_authenticated else None
@@ -236,7 +244,7 @@ def generate_keyword_description(keyword_title: str) -> dict[str, Any]:
 
         return {
             "success": False,
-            "error": f"生成失敗: {error_message}",
+            "error": user_error,
             "content": None,
         }
 
