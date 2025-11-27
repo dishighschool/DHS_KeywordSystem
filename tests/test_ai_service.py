@@ -114,7 +114,8 @@ class TestAIService:
             settings = get_ai_settings()
 
             assert settings["api_key"] == ""
-            assert settings["model"] == "gemini-1.5-flash"
+            # Model default is empty by default; admin should explicitly choose a model.
+            assert settings["model"] == ""
             assert settings["max_tokens"] == 500
             assert settings["temperature"] == 0.7
             assert settings["enabled"] is False

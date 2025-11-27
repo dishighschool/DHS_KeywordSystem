@@ -44,7 +44,9 @@ def get_ai_settings() -> dict[str, Any]:
 
     return {
         "api_key": SiteSetting.get(SiteSettingKey.AI_API_KEY, ""),
-        "model": SiteSetting.get(SiteSettingKey.AI_MODEL, "gemini-1.5-flash"),
+        # Model is stored as the full model resource name (e.g. "models/gemini-1.5-pro");
+        # keep empty default so admin explicitly picks a model
+        "model": SiteSetting.get(SiteSettingKey.AI_MODEL, ""),
         "system_prompt": SiteSetting.get(SiteSettingKey.AI_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT),
         "max_tokens": max_tokens,
         "temperature": temperature,
@@ -76,16 +78,19 @@ def fetch_available_models(api_key: str) -> list[dict[str, str]]:
         available_models = []
         for model in models:
             # Only include models that support generateContent
-            if "generateContent" in model.supported_generation_methods:
-                available_models.append(
-                    {
-                        "name": model.name.replace("models/", ""),
-                        "display_name": model.display_name,
-                        "description": model.description or "",
-                        "input_token_limit": getattr(model, "input_token_limit", 0),
-                        "output_token_limit": getattr(model, "output_token_limit", 0),
-                    }
-                )
+                if "generateContent" in model.supported_generation_methods:
+                    available_models.append(
+                        {
+                            # Use the full model resource name (models/...) as the value so it can be passed
+                            # directly to the library when constructing the GenerativeModel.
+                            "name": model.name,
+                            "display_name": model.display_name,
+                            "description": getattr(model, "description", "") or "",
+                            "input_token_limit": getattr(model, "input_token_limit", 0),
+                            "output_token_limit": getattr(model, "output_token_limit", 0),
+                            "supported_generation_methods": getattr(model, "supported_generation_methods", []),
+                        }
+                    )
 
         return available_models
 
@@ -134,8 +139,22 @@ def generate_keyword_description(keyword_title: str) -> dict[str, Any]:
 
         genai.configure(api_key=settings["api_key"])
 
+        model_name = settings.get("model") or ""
+        # If the stored model doesn't include the 'models/' prefix, gracefully prefix it.
+        if model_name and not model_name.startswith("models/"):
+            model_name = f"models/{model_name}"
+
+        # If there's still no model selected, try to auto-select the first available model
+        if not model_name:
+            models = fetch_available_models(settings["api_key"]) if settings.get("api_key") else []
+            if models:
+                model_name = models[0]["name"]
+
+        if not model_name:
+            return {"success": False, "error": "未選擇模型", "content": None}
+
         model = genai.GenerativeModel(
-            model_name=settings["model"],
+            model_name=model_name,
             system_instruction=settings["system_prompt"],
         )
 
@@ -171,7 +190,7 @@ def generate_keyword_description(keyword_title: str) -> dict[str, Any]:
         user_id = current_user.id if current_user and current_user.is_authenticated else None
         usage_log = AIUsageLog(
             user_id=user_id,
-            model=settings["model"],
+            model=model_name,
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             total_tokens=total_tokens,

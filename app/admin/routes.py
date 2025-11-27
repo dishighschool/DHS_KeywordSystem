@@ -3489,11 +3489,11 @@ def ai_settings():
             for m in available_models
         ]
     else:
-        # Default choices if no API key or fetch failed
+        # Default fallback choices (use full model resource names)
         form.model.choices = [
-            ("gemini-1.5-flash", "Gemini 1.5 Flash"),
-            ("gemini-1.5-pro", "Gemini 1.5 Pro"),
-            ("gemini-1.0-pro", "Gemini 1.0 Pro"),
+            ("models/gemini-1.5-flash", "Gemini 1.5 Flash"),
+            ("models/gemini-1.5-pro", "Gemini 1.5 Pro"),
+            ("models/gemini-1.0-pro", "Gemini 1.0 Pro"),
         ]
     
     # Get usage statistics
@@ -3532,21 +3532,22 @@ def update_ai_settings():
             ]
         else:
             form.model.choices = [
-                ("gemini-1.5-flash", "Gemini 1.5 Flash"),
-                ("gemini-1.5-pro", "Gemini 1.5 Pro"),
-                ("gemini-1.0-pro", "Gemini 1.0 Pro"),
+                ("models/gemini-1.5-flash", "Gemini 1.5 Flash"),
+                ("models/gemini-1.5-pro", "Gemini 1.5 Pro"),
+                ("models/gemini-1.0-pro", "Gemini 1.0 Pro"),
             ]
     else:
         form.model.choices = [
-            ("gemini-1.5-flash", "Gemini 1.5 Flash"),
-            ("gemini-1.5-pro", "Gemini 1.5 Pro"),
-            ("gemini-1.0-pro", "Gemini 1.0 Pro"),
+            ("models/gemini-1.5-flash", "Gemini 1.5 Flash"),
+            ("models/gemini-1.5-pro", "Gemini 1.5 Pro"),
+            ("models/gemini-1.0-pro", "Gemini 1.0 Pro"),
         ]
     
     if form.validate_on_submit():
         # Save settings
         SiteSetting.set(SiteSettingKey.AI_API_KEY, form.api_key.data or "")
-        SiteSetting.set(SiteSettingKey.AI_MODEL, form.model.data or "gemini-1.5-flash")
+        # Save the full model resource name (e.g. models/gemini-1.5-pro)
+        SiteSetting.set(SiteSettingKey.AI_MODEL, form.model.data or "")
         SiteSetting.set(
             SiteSettingKey.AI_SYSTEM_PROMPT, 
             form.system_prompt.data or DEFAULT_SYSTEM_PROMPT
